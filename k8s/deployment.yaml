@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: car-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: car-dashboard
+  template:
+    metadata:
+      labels:
+        app: car-dashboard
+    spec:
+      containers:
+        - name: car-dashboard
+          image: your-dockerhub-username/car-dashboard:latest
+          ports:
+            - containerPort: 8050
+          env:
+            - name: COUCHDB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_URL
+          volumeMounts:
+            - mountPath: /app/logs
+              name: log-volume
+      volumes:
+        - name: log-volume
+          emptyDir: {}
