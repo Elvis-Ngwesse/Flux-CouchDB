@@ -4,8 +4,8 @@ services:
   couchdb:
     image: couchdb:3
     environment:
-      - COUCHDB_USER=admin
-      - COUCHDB_PASSWORD=admin
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
     ports:
       - "5984:5984"
     volumes:
@@ -16,7 +16,7 @@ services:
     ports:
       - "8050:8050"
     environment:
-      - COUCHDB_URL=http://admin:admin@couchdb:5984/
+      - COUCHDB_URL=${COUCHDB_URL:-http://admin:admin@couchdb:5984/}
     depends_on:
       - couchdb
     volumes:
@@ -25,9 +25,9 @@ services:
   data-generator:
     build:
       context: .
-      dockerfile: Dockerfile.job  # Separate Dockerfile for data job
+      dockerfile: Dockerfile.job
     environment:
-      - COUCHDB_URL=http://admin:admin@couchdb:5984/
+      - COUCHDB_URL=${COUCHDB_URL:-http://admin:admin@couchdb:5984/}
     depends_on:
       - couchdb
     volumes:

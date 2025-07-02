@@ -3,3 +3,5 @@ flask
 pandas
 plotly
 couchdb
+faker
+python-dotenv

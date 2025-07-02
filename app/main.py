@@ -5,6 +5,10 @@ import couchdb
 import logging
 import os
 import pandas as pd
+from dotenv import load_dotenv  # <-- added
+
+# Load environment variables from .env file
+load_dotenv()  # <-- added
 
 # Setup logging
 logging.basicConfig(filename='logs/app.log', level=logging.INFO,
@@ -22,7 +26,6 @@ app = dash.Dash(__name__)
 server = app.server
 
 # Dropdown options
-
 def get_countries():
     countries = set()
     for doc_id in db:
