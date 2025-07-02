@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   couchdb:
     image: couchdb:3
@@ -20,6 +21,19 @@ services:
       - couchdb
     volumes:
       - ./logs:/app/logs
+
+  data-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.job  # Separate Dockerfile for data job
+    environment:
+      - COUCHDB_URL=http://admin:admin@couchdb:5984/
+    depends_on:
+      - couchdb
+    volumes:
+      - ./logs:/app/logs
+    entrypoint: ["python", "data/generate_data.py"]
+    restart: "no"   # Run once and stop
 
 volumes:
   couchdb_data:

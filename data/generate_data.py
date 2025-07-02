@@ -9,7 +9,7 @@ db = couch[db_name] if db_name in couch else couch.create(db_name)
 
 eu_countries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Czech Republic", "Denmark",
                 "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland",
-                "Italy", "Latvia", "Lithuania", "Netherlands", "Poland", "Portugal", "Spain"]
+                "Italy", "Latvia", "Lithuania", "Netherlands", "Poland", "Portugal", "Spain", "United-Kingdom"]
 
 car_models = [
     "Volkswagen Golf", "Volkswagen Polo", "Volkswagen Passat", "Volkswagen Tiguan",
@@ -37,7 +37,20 @@ car_models = [
     "Mitsubishi ASX", "Mitsubishi Outlander", "Mitsubishi Eclipse Cross",
     "Jeep Renegade", "Jeep Compass", "Jeep Cherokee",
     "Alfa Romeo Giulia", "Alfa Romeo Giulietta", "Alfa Romeo Stelvio",
-    "Tesla Model 3", "Tesla Model S", "Tesla Model Y", "Tesla Model X"
+    "Tesla Model 3", "Tesla Model S", "Tesla Model Y", "Tesla Model X",
+    "Hyundai Santa Fe", "Hyundai Kona", "Kia Stinger", "Kia Sorento",
+    "Toyota Camry", "Toyota Land Cruiser", "Mazda CX-3", "Mazda CX-30",
+    "Ford Mustang", "Ford Edge", "Chevrolet Cruze", "Chevrolet Tahoe",
+    "Nissan Leaf", "Nissan Altima", "Honda Accord", "Honda Pilot",
+    "Volkswagen Arteon", "Volkswagen Tiguan Allspace", "Audi Q5", "Audi Q7",
+    "BMW X3", "BMW X5", "Mercedes GLC", "Mercedes GLE",
+    "Peugeot 508", "Peugeot 5008", "Citroen C5", "Citroen Berlingo",
+    "Renault Twingo", "Renault Zoe", "Fiat 124 Spider", "Fiat 500X",
+    "Seat Tarraco", "Seat Alhambra", "Skoda Kodiaq", "Skoda Scala",
+    "Jeep Wrangler", "Jeep Grand Cherokee", "Tesla Model X Plaid", "Tesla Model S Plaid",
+    "Mini Electric", "Suzuki Ignis Hybrid", "Mitsubishi Pajero", "Mitsubishi L200",
+    "Land Rover Discovery", "Land Rover Defender", "Volvo XC90", "Volvo S90",
+    "Subaru Outback", "Subaru Forester"
 ]
 
 for country in eu_countries:

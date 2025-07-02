@@ -1,0 +1,17 @@
+# Dockerfile.job
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy only the data generation script
+COPY data/generate_data.py data/generate_data.py
+
+# Optional: include __init__.py so it works as import
+RUN mkdir -p data && touch data/__init__.py
+
+# Default command
+CMD ["python", "data/generate_data.py"]
