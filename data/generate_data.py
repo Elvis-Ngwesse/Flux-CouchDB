@@ -1,42 +1,79 @@
+import time
 import couchdb
-import random
 from faker import Faker
+from faker_vehicle import VehicleProvider
 import os
 from dotenv import load_dotenv
+import logging
+import random
 
-load_dotenv()  # Load .env variables
+# Load environment variables from .env file
+load_dotenv()
 
+# Setup logging to console only (stdout)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]  # log to container stdout
+)
+logger = logging.getLogger()
+
+# Setup Faker and add vehicle provider
 fake = Faker()
-couchdb_url = os.getenv("COUCHDB_URL", "http://admin:admin@localhost:5984/")
-couch = couchdb.Server(couchdb_url)
+fake.add_provider(VehicleProvider)
+
+# CouchDB connection parameters
+user = os.getenv("COUCHDB_USER", "admin")
+password = os.getenv("COUCHDB_PASSWORD", "admin")
+host = os.getenv("COUCHDB_HOST", "couchdb")
+port = os.getenv("COUCHDB_PORT", "5984")
+
+couchdb_url = f"http://{user}:{password}@{host}:{port}/"
 db_name = "car_prices"
-db = couch[db_name] if db_name in couch else couch.create(db_name)
 
-eu_countries = [
-    "Austria", "Belgium", "Bulgaria", "Croatia", "Czech Republic", "Denmark",
-    "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland",
-    "Italy", "Latvia", "Lithuania", "Netherlands", "Poland", "Portugal", "Spain", "United-Kingdom"
-]
+max_retries = 10
+retry_delay = 3  # seconds
 
-car_models = [
-    # Your full list here
-    "Volkswagen Golf", "Volkswagen Polo", "Volkswagen Passat", "Volkswagen Tiguan",
-    # ... (rest omitted for brevity)
-    "Subaru Outback", "Subaru Forester"
-]
+def connect_couchdb():
+    for attempt in range(max_retries):
+        try:
+            couch = couchdb.Server(couchdb_url)
+            if db_name in couch:
+                db = couch[db_name]
+            else:
+                db = couch.create(db_name)
+            logger.info("Connected to CouchDB and accessed database successfully.")
+            return db
+        except Exception as e:
+            logger.warning(f"Attempt {attempt + 1}/{max_retries}: Could not connect to CouchDB - {e}")
+            time.sleep(retry_delay)
+    logger.error("Failed to connect to CouchDB after several retries. Exiting.")
+    raise SystemExit("Cannot connect to CouchDB")
 
-for country in eu_countries:
-    sampled_cars = random.sample(car_models, k=random.randint(20, 30))
-    for car in sampled_cars:
-        for _ in range(random.randint(5, 10)):
-            doc = {
-                "country": country,
-                "car_type": car,
-                "price": random.randint(2000, 45000),
-                "mileage": random.randint(10000, 200000),
-                "year": random.randint(2005, 2024),
-                "location": fake.city()
-            }
+def generate_and_insert_cars(db, num_cars=200):
+    logger.info(f"Generating and inserting {num_cars} fake car records...")
+    for _ in range(num_cars):
+        doc = {
+            "country": fake.country(),
+            "car_type": fake.vehicle_make_model(),
+            "price": random.randint(2000, 45000),
+            "mileage": random.randint(10000, 200000),
+            "year": random.randint(2005, 2024),
+            "location": fake.city()
+        }
+        try:
             db.save(doc)
+        except Exception as e:
+            logger.error(f"Failed to save document: {e}")
+    logger.info(f"✅ {num_cars} fake car records inserted into CouchDB")
+    print(f"✅ {num_cars} fake car records inserted into CouchDB")
 
-print("✅ Sample data inserted into CouchDB")
+def main():
+    while True:
+        db = connect_couchdb()
+        generate_and_insert_cars(db, 200)
+        logger.info("Sleeping for 2 minutes before next run...")
+        time.sleep(120)  # wait 2 minutes before repeating
+
+if __name__ == "__main__":
+    main()

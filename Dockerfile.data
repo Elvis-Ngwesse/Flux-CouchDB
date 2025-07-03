@@ -1,17 +1,24 @@
 # Dockerfile.job
 FROM python:3.11-slim
 
+# Create non-root user and group
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
+# Set working directory
 WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only the data generation script
-COPY data/generate_data.py data/generate_data.py
+# Copy script directly into /app
+COPY data/generate_data.py .
 
-# Optional: include __init__.py so it works as import
-RUN mkdir -p data && touch data/__init__.py
+# Set ownership and permissions
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 # Default command
-CMD ["python", "data/generate_data.py"]
+CMD ["python", "generate_data.py"]

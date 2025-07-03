@@ -10,9 +10,13 @@ services:
       - "5984:5984"
     volumes:
       - couchdb_data:/opt/couchdb/data
+    networks:
+      - car_network
 
   car-dashboard:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.app
     ports:
       - "8050:8050"
     environment:
@@ -21,19 +25,27 @@ services:
       - couchdb
     volumes:
       - ./logs:/app/logs
+    networks:
+      - car_network
 
   data-generator:
     build:
       context: .
-      dockerfile: Dockerfile.job
+      dockerfile: Dockerfile.data
     environment:
       - COUCHDB_URL=${COUCHDB_URL:-http://admin:admin@couchdb:5984/}
     depends_on:
       - couchdb
     volumes:
       - ./logs:/app/logs
-    entrypoint: ["python", "data/generate_data.py"]
+    entrypoint: ["python", "generate_data.py"]
     restart: "no"   # Run once and stop
+    networks:
+      - car_network
 
 volumes:
   couchdb_data:
+
+networks:
+  car_network:
+    driver: bridge

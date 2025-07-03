@@ -5,3 +5,4 @@ plotly
 couchdb
 faker
 python-dotenv
+faker-vehicle
