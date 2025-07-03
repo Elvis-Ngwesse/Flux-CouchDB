@@ -12,9 +12,9 @@ load_dotenv()
 
 # Setup logging to console only (stdout)
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Set to DEBUG to capture all logs; change to INFO to reduce verbosity
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]  # log to container stdout
+    handlers=[logging.StreamHandler()]  # log to container stdout for Kibana/ELK
 )
 logger = logging.getLogger()
 
@@ -37,22 +37,25 @@ retry_delay = 3  # seconds
 def connect_couchdb():
     for attempt in range(max_retries):
         try:
+            logger.info(f"Attempting to connect to CouchDB (try {attempt + 1}/{max_retries}) at {couchdb_url}")
             couch = couchdb.Server(couchdb_url)
             if db_name in couch:
                 db = couch[db_name]
+                logger.info(f"Database '{db_name}' exists, connected successfully.")
             else:
                 db = couch.create(db_name)
-            logger.info("Connected to CouchDB and accessed database successfully.")
+                logger.info(f"Database '{db_name}' created and connected successfully.")
             return db
         except Exception as e:
-            logger.warning(f"Attempt {attempt + 1}/{max_retries}: Could not connect to CouchDB - {e}")
+            logger.warning(f"Attempt {attempt + 1} failed: Could not connect to CouchDB - {e}")
             time.sleep(retry_delay)
     logger.error("Failed to connect to CouchDB after several retries. Exiting.")
     raise SystemExit("Cannot connect to CouchDB")
 
 def generate_and_insert_cars(db, num_cars=200):
-    logger.info(f"Generating and inserting {num_cars} fake car records...")
-    for _ in range(num_cars):
+    logger.info(f"Generating and inserting {num_cars} fake car records into CouchDB")
+    inserted = 0
+    for i in range(num_cars):
         doc = {
             "country": fake.country(),
             "car_type": fake.vehicle_make_model(),
@@ -63,17 +66,19 @@ def generate_and_insert_cars(db, num_cars=200):
         }
         try:
             db.save(doc)
+            inserted += 1
+            logger.debug(f"Inserted doc #{i+1}: {doc}")
         except Exception as e:
-            logger.error(f"Failed to save document: {e}")
-    logger.info(f"✅ {num_cars} fake car records inserted into CouchDB")
-    print(f"✅ {num_cars} fake car records inserted into CouchDB")
+            logger.error(f"Failed to save document #{i+1}: {e}")
+    logger.info(f"✅ Inserted {inserted}/{num_cars} fake car records successfully.")
 
 def main():
+    logger.info("Starting fake car data generator script")
     while True:
         db = connect_couchdb()
         generate_and_insert_cars(db, 200)
-        logger.info("Sleeping for 2 minutes before next run...")
-        time.sleep(120)  # wait 2 minutes before repeating
+        logger.info("Sleeping for 2 minutes before next batch insertion...")
+        time.sleep(120)  # wait 2 minutes before next run
 
 if __name__ == "__main__":
     main()
