@@ -34,6 +34,7 @@ db_name = "car_prices"
 max_retries = 10
 retry_delay = 3  # seconds
 
+
 def connect_couchdb():
     for attempt in range(max_retries):
         try:
@@ -52,6 +53,7 @@ def connect_couchdb():
     logger.error("Failed to connect to CouchDB after several retries. Exiting.")
     raise SystemExit("Cannot connect to CouchDB")
 
+
 def generate_and_insert_cars(db, num_cars=200):
     logger.info(f"Generating and inserting {num_cars} fake car records into CouchDB")
     inserted = 0
@@ -67,10 +69,11 @@ def generate_and_insert_cars(db, num_cars=200):
         try:
             db.save(doc)
             inserted += 1
-            logger.debug(f"Inserted doc #{i+1}: {doc}")
+            logger.debug(f"Inserted doc #{i + 1}: {doc}")
         except Exception as e:
-            logger.error(f"Failed to save document #{i+1}: {e}")
+            logger.error(f"Failed to save document #{i + 1}: {e}")
     logger.info(f"✅ Inserted {inserted}/{num_cars} fake car records successfully.")
+
 
 def main():
     logger.info("Starting fake car data generator script")
@@ -79,6 +82,7 @@ def main():
         generate_and_insert_cars(db, 200)
         logger.info("Sleeping for 2 minutes before next batch insertion...")
         time.sleep(120)  # wait 2 minutes before next run
+
 
 if __name__ == "__main__":
     main()

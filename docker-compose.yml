@@ -29,7 +29,8 @@ services:
           sleep 2;
         done &&
         echo 'Creating _users database if it does not exist...' &&
-        curl -X PUT -u ${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin} http://couchdb:5984/_users
+        curl -sf -X PUT -u ${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin} http://couchdb:5984/_users || true
+        -X PUT -u ${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin} http://couchdb:5984/_users
       "
     networks:
       - car_network
