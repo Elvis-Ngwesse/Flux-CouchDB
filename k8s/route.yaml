@@ -1,10 +1,11 @@
-apiVersion: route.openshift.io/v1
-kind: Route
+apiVersion: v1
+kind: Service
 metadata:
-  name: car-dashboard-route
+  name: car-dashboard
 spec:
-  to:
-    kind: Service
-    name: car-dashboard
-  port:
-    targetPort: 80
+  selector:
+    app: car-dashboard
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8050
