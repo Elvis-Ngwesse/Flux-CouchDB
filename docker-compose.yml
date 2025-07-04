@@ -30,8 +30,17 @@ services:
         done &&
         echo 'Creating _users database if it does not exist...' &&
         curl -sf -X PUT -u ${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin} http://couchdb:5984/_users || true
-        -X PUT -u ${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin} http://couchdb:5984/_users
       "
+    networks:
+      - car_network
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
     networks:
       - car_network
 
@@ -39,15 +48,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.app
+    container_name: car-dashboard
     ports:
       - "8050:8050"
     environment:
-      - COUCHDB_URL=${COUCHDB_URL:-http://admin:admin@couchdb:5984/}
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
+      - COUCHDB_HOST=couchdb
+      - COUCHDB_PORT=5984
+      - COUCHDB_URL=http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin}@couchdb:5984/
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_BUCKET=car_metrics
     depends_on:
       - couchdb
       - couchdb-init
-    volumes:
-      - ./logs:/app/logs
+      - influxdb
     networks:
       - car_network
 
@@ -55,19 +70,26 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.data
+    container_name: data-generator
     environment:
-      - COUCHDB_URL=${COUCHDB_URL:-http://admin:admin@couchdb:5984/}
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
+      - COUCHDB_HOST=couchdb
+      - COUCHDB_PORT=5984
+      - COUCHDB_URL=http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD:-admin}@couchdb:5984/
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_BUCKET=car_metrics
     depends_on:
       - couchdb
       - couchdb-init
-    volumes:
-      - ./logs:/app/logs
+      - influxdb
     entrypoint: ["python", "generate_data.py"]
     networks:
       - car_network
 
 volumes:
   couchdb_data:
+  influxdb_data:
 
 networks:
   car_network:

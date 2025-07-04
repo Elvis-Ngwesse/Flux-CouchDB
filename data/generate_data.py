@@ -31,12 +31,9 @@ port = os.getenv("COUCHDB_PORT", "5984")
 couchdb_url = f"http://{user}:{password}@{host}:{port}/"
 db_name = "car_prices"
 
-# InfluxDB configuration
+# InfluxDB configuration for 1.x
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
-INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")
-INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "car_metrics")
-INFLUXDB_DB = INFLUXDB_BUCKET  # fallback for compatibility with v1.8
+INFLUXDB_DB = os.getenv("INFLUXDB_DB", "car_metrics")
 
 max_retries = 10
 retry_delay = 3  # seconds
@@ -74,16 +71,8 @@ def push_metric(measurement, fields, tags=None, timestamp=None):
     if timestamp:
         line += f" {timestamp}"
 
-    # Supports token or no-token mode
-    if INFLUXDB_TOKEN:
-        url = f"{INFLUXDB_URL}/api/v2/write?org={INFLUXDB_ORG}&bucket={INFLUXDB_BUCKET}&precision=ns"
-        headers = {
-            "Authorization": f"Token {INFLUXDB_TOKEN}",
-            "Content-Type": "text/plain; charset=utf-8"
-        }
-    else:
-        url = f"{INFLUXDB_URL}/write?db={INFLUXDB_DB}&precision=ns"
-        headers = {"Content-Type": "text/plain; charset=utf-8"}
+    url = f"{INFLUXDB_URL}/write?db={INFLUXDB_DB}&precision=ns"
+    headers = {"Content-Type": "text/plain; charset=utf-8"}
 
     try:
         resp = requests.post(url, headers=headers, data=line)
@@ -118,10 +107,11 @@ def generate_and_insert_cars(db, num_cars=200):
     prices = []
 
     for i in range(num_cars):
+        price = random.randint(2000, 45000)
         doc = {
             "country": fake.country(),
             "car_type": fake.vehicle_make_model(),
-            "price": price := random.randint(2000, 45000),
+            "price": price,
             "mileage": random.randint(10000, 200000),
             "year": random.randint(2005, 2024),
             "location": fake.city()

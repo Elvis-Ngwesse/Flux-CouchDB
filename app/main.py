@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import time
 import random
 import requests
+import re
 
 # Load environment variables
 load_dotenv()
@@ -28,10 +29,7 @@ db_name = "car_prices"
 
 # InfluxDB connection details from env
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
-INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")  # optional if using v1.8
-INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "")
-INFLUXDB_DB = INFLUXDB_BUCKET or "car_metrics"  # fallback
+INFLUXDB_DB = os.getenv("INFLUXDB_DB", "car_metrics")  # fallback for v1.8
 
 def ensure_influxdb_db_exists():
     logger.info(f"Ensuring InfluxDB database '{INFLUXDB_DB}' exists...")
@@ -58,10 +56,14 @@ def format_field_value(value):
     else:
         return str(value)
 
+def sanitize_tag_value(value):
+    # Remove spaces, commas, equal signs (InfluxDB tags cannot have these)
+    return re.sub(r'[ ,=]', '_', value)
+
 def push_metric(measurement, fields, tags=None, timestamp=None):
     line = measurement
     if tags:
-        tag_str = ",".join(f"{k}={v}" for k, v in tags.items())
+        tag_str = ",".join(f"{k}={sanitize_tag_value(str(v))}" for k, v in tags.items())
         line += f",{tag_str}"
     field_str = ",".join(f"{k}={format_field_value(v)}" for k, v in fields.items())
     line += f" {field_str}"
@@ -82,7 +84,7 @@ def push_metric(measurement, fields, tags=None, timestamp=None):
     except Exception as e:
         logger.error(f"Error pushing metric to InfluxDB: {e}")
 
-# Retry logic for CouchDB
+# Retry logic for CouchDB connection
 couch = None
 max_retries = 10
 retry_delay = 3
@@ -106,11 +108,11 @@ else:
 # Ensure InfluxDB database exists
 ensure_influxdb_db_exists()
 
-# Start Dash app
+# Initialize Dash app
 app = dash.Dash(__name__)
 server = app.server
 
-# Get all countries in DB
+# Fetch all countries from the DB
 def get_countries():
     logger.info("Fetching countries...")
     countries = set()
@@ -123,7 +125,7 @@ def get_countries():
         logger.error(f"Error fetching countries: {e}")
         return []
 
-# Some car banner images
+# Sample car banner images
 CAR_IMAGES = [
     "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg",
     "https://cdn.pixabay.com/photo/2015/01/19/13/51/car-604019_1280.jpg",
@@ -146,7 +148,7 @@ app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children
         )
     ], style={'padding': '10px 0'}),
 
-    # Interval for auto-refresh (disabled by default)
+    # Interval for auto-refresh
     dcc.Interval(id='interval', interval=60 * 1000, n_intervals=0, disabled=True),
 
     html.Div([
@@ -156,7 +158,7 @@ app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children
     ])
 ])
 
-# Callback to update graphs + control interval
+# Callback to update graphs + control interval enable/disable
 @app.callback(
     [Output('price-bar', 'figure'),
      Output('price-line', 'figure'),
@@ -173,17 +175,18 @@ def update_graphs(selected_country, n_intervals):
             {"data": [], "layout": {"title": "Select a country"}},
             {"data": [], "layout": {"title": "Select a country"}},
             {"data": [], "layout": {"title": "Select a country"}},
-            True
+            True  # Disable interval when no country selected
         )
 
     try:
         cars = [db[doc] for doc in db if db[doc].get('country') == selected_country]
         if not cars:
+            logger.info("No car data found for selected country.")
             return (
                 {"data": [], "layout": {"title": "No data"}},
                 {"data": [], "layout": {"title": "No data"}},
                 {"data": [], "layout": {"title": "No data"}},
-                False
+                True  # Disable interval if no data
             )
         df = pd.DataFrame(cars)
     except Exception as e:
@@ -192,7 +195,7 @@ def update_graphs(selected_country, n_intervals):
             {"data": [], "layout": {"title": "Error"}},
             {"data": [], "layout": {"title": "Error"}},
             {"data": [], "layout": {"title": "Error"}},
-            False
+            True  # Disable interval on error
         )
 
     # Bar chart: price per car type
@@ -231,7 +234,7 @@ def update_graphs(selected_country, n_intervals):
         }
     )
 
-    return price_bar, price_line, car_pie, False
+    return price_bar, price_line, car_pie, False  # Enable interval
 
 # Run app
 if __name__ == "__main__":
