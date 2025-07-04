@@ -48,7 +48,9 @@ def ensure_influxdb_db_exists():
 
 def format_field_value(value):
     if isinstance(value, str):
-        return f'"{value}"'
+        # Escape double quotes and backslashes inside strings
+        escaped = value.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{escaped}"'
     elif isinstance(value, bool):
         return "true" if value else "false"
     elif isinstance(value, int):
@@ -60,7 +62,19 @@ def sanitize_tag_value(value):
     # Remove spaces, commas, equal signs (InfluxDB tags cannot have these)
     return re.sub(r'[ ,=]', '_', value)
 
-def push_metric(measurement, fields, tags=None, timestamp=None):
+def push_metric(measurement, fields, tags=None, timestamp=None,
+                max_retries=5, base_delay=1):
+    """
+    Push a metric line to InfluxDB with retries and error handling.
+
+    Args:
+      measurement (str): Measurement name.
+      fields (dict): Field key-values.
+      tags (dict): Tag key-values.
+      timestamp (int or str): Optional timestamp in ns.
+      max_retries (int): Max retry attempts.
+      base_delay (int or float): Initial delay in seconds for retry backoff.
+    """
     line = measurement
     if tags:
         tag_str = ",".join(f"{k}={sanitize_tag_value(str(v))}" for k, v in tags.items())
@@ -75,14 +89,27 @@ def push_metric(measurement, fields, tags=None, timestamp=None):
         "Content-Type": "text/plain"
     }
 
-    try:
-        resp = requests.post(url, headers=headers, data=line)
-        if resp.status_code != 204:
-            logger.warning(f"InfluxDB push failed: {resp.status_code} {resp.text}")
+    attempt = 0
+    while attempt <= max_retries:
+        try:
+            resp = requests.post(url, headers=headers, data=line, timeout=5)
+            if resp.status_code == 204:
+                logger.debug(f"Metric pushed successfully on attempt {attempt + 1}: {line}")
+                return True
+            else:
+                logger.warning(f"Attempt {attempt + 1} - InfluxDB push failed with status {resp.status_code}: {resp.text}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Attempt {attempt + 1} - Exception pushing metric: {e}")
+
+        attempt += 1
+        if attempt <= max_retries:
+            delay = base_delay * (2 ** (attempt - 1))  # Exponential backoff
+            logger.info(f"Retrying in {delay:.1f} seconds...")
+            time.sleep(delay)
         else:
-            logger.debug(f"Metric pushed: {line}")
-    except Exception as e:
-        logger.error(f"Error pushing metric to InfluxDB: {e}")
+            logger.error(f"Max retries ({max_retries}) reached. Failed to push metric: {line}")
+
+    return False
 
 # Retry logic for CouchDB connection
 couch = None
@@ -220,7 +247,7 @@ def update_graphs(selected_country, n_intervals):
         "layout": {"title": f"Car Type Distribution in {selected_country}"}
     }
 
-    # Push metrics to InfluxDB
+    # Push metrics to InfluxDB with retries and logging
     avg_price = df["price"].mean()
     count_cars = len(df)
     push_metric(
