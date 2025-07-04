@@ -6,3 +6,4 @@ couchdb
 faker
 python-dotenv
 faker-vehicle
+requests

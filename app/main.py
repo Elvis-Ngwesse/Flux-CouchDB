@@ -8,6 +8,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import time
 import random
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -25,7 +26,63 @@ port = os.getenv("COUCHDB_PORT", "5984")
 couchdb_url = f"http://{user}:{password}@{host}:{port}/"
 db_name = "car_prices"
 
-# Retry logic
+# InfluxDB connection details from env
+INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
+INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "")  # optional if using v1.8
+INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "")
+INFLUXDB_DB = INFLUXDB_BUCKET or "car_metrics"  # fallback
+
+def ensure_influxdb_db_exists():
+    logger.info(f"Ensuring InfluxDB database '{INFLUXDB_DB}' exists...")
+    try:
+        url = f"{INFLUXDB_URL}/query"
+        params = {
+            "q": f"CREATE DATABASE {INFLUXDB_DB}"
+        }
+        r = requests.post(url, params=params)
+        if r.status_code != 200:
+            logger.warning(f"Failed to create DB: {r.status_code} {r.text}")
+        else:
+            logger.info(f"InfluxDB database '{INFLUXDB_DB}' ensured.")
+    except Exception as e:
+        logger.error(f"Error creating InfluxDB DB: {e}")
+
+def format_field_value(value):
+    if isinstance(value, str):
+        return f'"{value}"'
+    elif isinstance(value, bool):
+        return "true" if value else "false"
+    elif isinstance(value, int):
+        return f"{value}i"
+    else:
+        return str(value)
+
+def push_metric(measurement, fields, tags=None, timestamp=None):
+    line = measurement
+    if tags:
+        tag_str = ",".join(f"{k}={v}" for k, v in tags.items())
+        line += f",{tag_str}"
+    field_str = ",".join(f"{k}={format_field_value(v)}" for k, v in fields.items())
+    line += f" {field_str}"
+    if timestamp:
+        line += f" {timestamp}"
+
+    url = f"{INFLUXDB_URL}/write?db={INFLUXDB_DB}&precision=ns"
+    headers = {
+        "Content-Type": "text/plain"
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, data=line)
+        if resp.status_code != 204:
+            logger.warning(f"InfluxDB push failed: {resp.status_code} {resp.text}")
+        else:
+            logger.debug(f"Metric pushed: {line}")
+    except Exception as e:
+        logger.error(f"Error pushing metric to InfluxDB: {e}")
+
+# Retry logic for CouchDB
 couch = None
 max_retries = 10
 retry_delay = 3
@@ -46,10 +103,12 @@ for attempt in range(max_retries):
 else:
     raise SystemExit("Failed to connect to CouchDB")
 
+# Ensure InfluxDB database exists
+ensure_influxdb_db_exists()
+
 # Start Dash app
 app = dash.Dash(__name__)
 server = app.server
-
 
 # Get all countries in DB
 def get_countries():
@@ -63,7 +122,6 @@ def get_countries():
     except Exception as e:
         logger.error(f"Error fetching countries: {e}")
         return []
-
 
 # Some car banner images
 CAR_IMAGES = [
@@ -98,7 +156,6 @@ app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children
     ])
 ])
 
-
 # Callback to update graphs + control interval
 @app.callback(
     [Output('price-bar', 'figure'),
@@ -116,7 +173,7 @@ def update_graphs(selected_country, n_intervals):
             {"data": [], "layout": {"title": "Select a country"}},
             {"data": [], "layout": {"title": "Select a country"}},
             {"data": [], "layout": {"title": "Select a country"}},
-            True  # disable auto-refresh
+            True
         )
 
     try:
@@ -160,8 +217,21 @@ def update_graphs(selected_country, n_intervals):
         "layout": {"title": f"Car Type Distribution in {selected_country}"}
     }
 
-    return price_bar, price_line, car_pie, False  # Enable interval
+    # Push metrics to InfluxDB
+    avg_price = df["price"].mean()
+    count_cars = len(df)
+    push_metric(
+        measurement="used_car_market",
+        fields={
+            "average_price": float(avg_price),
+            "car_count": count_cars
+        },
+        tags={
+            "country": selected_country
+        }
+    )
 
+    return price_bar, price_line, car_pie, False
 
 # Run app
 if __name__ == "__main__":

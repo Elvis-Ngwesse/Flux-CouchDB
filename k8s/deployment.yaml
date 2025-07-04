@@ -1,11 +1,13 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: car-data-generator
+  namespace: car-app
   labels:
     app: car-data-generator
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: car-data-generator
@@ -14,9 +16,13 @@ spec:
       labels:
         app: car-data-generator
     spec:
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
       containers:
         - name: data-generator
-          image: dockerelvis/car-data-generator:latest  # ⬅️ Replace with your image
+          image: dockerelvis/car-data-generator:latest
           imagePullPolicy: Always
           env:
             - name: COUCHDB_USER
@@ -29,8 +35,20 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
+            - name: INFLUXDB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-secret
+                  key: INFLUXDB_TOKEN
+            - name: INFLUXDB_URL
+              value: http://influxdb.car-logs.svc.cluster.local:8086
             - name: COUCHDB_HOST
-              value: couchdb  # This should match the CouchDB service name in OpenShift
+              value: couchdb
             - name: COUCHDB_PORT
               value: "5984"
           resources:
@@ -40,18 +58,31 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
+          readinessProbe:
+            exec:
+              command: ["ls", "/app/logs"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command: ["ls", "/app/logs"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
       volumes:
         - name: logs
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: car-data-pvc
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: car-dashboard
+  namespace: car-app
   labels:
     app: car-dashboard
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: car-dashboard
@@ -60,9 +91,13 @@ spec:
       labels:
         app: car-dashboard
     spec:
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
       containers:
         - name: dash-app
-          image: dockerelvis/car-dashboard:latest  # ← replace with your image
+          image: dockerelvis/car-dashboard:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8050
@@ -77,17 +112,72 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
+            - name: INFLUXDB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-secret
+                  key: INFLUXDB_TOKEN
+            - name: INFLUXDB_URL
+              value: http://influxdb.car-logs.svc.cluster.local:8086
             - name: COUCHDB_HOST
               value: couchdb
             - name: COUCHDB_PORT
               value: "5984"
-          volumeMounts:
-            - name: logs
-              mountPath: /app/logs
           resources:
             limits:
               memory: "256Mi"
               cpu: "250m"
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8050
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8050
+            initialDelaySeconds: 30
+            periodSeconds: 30
       volumes:
         - name: logs
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: car-app-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: car-dashboard
+  namespace: car-app
+spec:
+  selector:
+    app: car-dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8050
+      protocol: TCP
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: car-dashboard
+  namespace: car-app
+spec:
+  to:
+    kind: Service
+    name: car-dashboard
+  port:
+    targetPort: http
+  tls:
+    termination: edge  # Enable TLS termination at the route (optional)
