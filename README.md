@@ -62,15 +62,25 @@ brew install fluxcd/tap/flux
 flux --version
 
 
-🌐 Step 2: Download OKD Installer and Client
-Go to: https://github.com/okd-project/okd/releases
+minikube start --nodes 3
+kubectl get nodes
+minikube ssh --node=minikube
+minikube ssh --node=minikube-m02
+minikube ssh --node=minikube-m03
 
-Download:
+kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
 
-openshift-install-mac
+minikube stop minikube delete --all
+minikube delete --all --purge
 
-openshift-client-mac
+🌐 
+https://github.com/settings/tokens
 
-OpenShift release image (e.g. Fedora CoreOS)
+flux bootstrap github \
+  --owner=Elvis-Ngwesse \
+  --repository=Flux-CouchDB \
+  --branch=main \
+  --path=./k8s
 
-Unpack and place in your $PATH, e.g.:
+
+flux get kustomizations
