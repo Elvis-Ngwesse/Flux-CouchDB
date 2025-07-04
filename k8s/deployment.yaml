@@ -1,7 +1,55 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: car-data-generator
+  labels:
+    app: car-data-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: car-data-generator
+  template:
+    metadata:
+      labels:
+        app: car-data-generator
+    spec:
+      containers:
+        - name: data-generator
+          image: dockerelvis/car-data-generator:latest  # ⬅️ Replace with your image
+          imagePullPolicy: Always
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
+            - name: COUCHDB_HOST
+              value: couchdb  # This should match the CouchDB service name in OpenShift
+            - name: COUCHDB_PORT
+              value: "5984"
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: car-dashboard
+  labels:
+    app: car-dashboard
 spec:
   replicas: 1
   selector:
@@ -13,19 +61,33 @@ spec:
         app: car-dashboard
     spec:
       containers:
-        - name: car-dashboard
-          image: your-dockerhub-username/car-dashboard:latest
+        - name: dash-app
+          image: dockerelvis/car-dashboard:latest  # ← replace with your image
+          imagePullPolicy: Always
           ports:
             - containerPort: 8050
           env:
-            - name: COUCHDB_URL
+            - name: COUCHDB_USER
               valueFrom:
                 secretKeyRef:
                   name: couchdb-secret
-                  key: COUCHDB_URL
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
+            - name: COUCHDB_HOST
+              value: couchdb
+            - name: COUCHDB_PORT
+              value: "5984"
           volumeMounts:
-            - mountPath: /app/logs
-              name: log-volume
+            - name: logs
+              mountPath: /app/logs
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
       volumes:
-        - name: log-volume
+        - name: logs
           emptyDir: {}

@@ -32,3 +32,26 @@ bash
 Copy
 Edit
 docker ps
+
+
+# Multi platform
+docker buildx create --use
+
+COMMIT_SHA=$(git rev-parse --short HEAD)
+docker buildx build \
+--platform linux/amd64 \
+-t dockerelvis/car-dashboard:latest \
+-t dockerelvis/car-dashboard:$COMMIT_SHA \
+-f Dockerfile.app \
+--load .
+echo $COMMIT_SHA
+
+-----
+COMMIT_SHA=$(git rev-parse --short HEAD)
+docker buildx build \
+--platform linux/amd64 \
+-t dockerelvis/car-dashboard:latest \
+-t dockerelvis/data-generator:$COMMIT_SHA \
+-f Dockerfile.app \
+--load .
+echo $COMMIT_SHA
