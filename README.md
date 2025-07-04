@@ -55,3 +55,22 @@ docker buildx build \
 -f Dockerfile.app \
 --load .
 echo $COMMIT_SHA
+
+
+🧩 Step 1: Install 
+brew install fluxcd/tap/flux
+flux --version
+
+
+🌐 Step 2: Download OKD Installer and Client
+Go to: https://github.com/okd-project/okd/releases
+
+Download:
+
+openshift-install-mac
+
+openshift-client-mac
+
+OpenShift release image (e.g. Fedora CoreOS)
+
+Unpack and place in your $PATH, e.g.:
