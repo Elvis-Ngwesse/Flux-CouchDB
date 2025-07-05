@@ -1,3 +1,36 @@
+# ConfigMap with dynamic template for CouchDB configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: couchdb-config
+  namespace: car-app
+data:
+  couchdb-template.ini: |
+    [couchdb]
+    single_node = false
+
+    [cluster]
+    q = 8
+    n = 2
+    r = 2
+    w = 2
+
+    [httpd]
+    bind_address = 0.0.0.0
+
+    [chttpd]
+    bind_address = 0.0.0.0
+
+    [admins]
+    ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
+
+    [secret]
+    cookie = ${COUCHDB_SECRET}
+
+    [log]
+    level = info
+---
+# Headless service for CouchDB StatefulSet
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,6 +48,7 @@ spec:
       targetPort: 5984
       protocol: TCP
 ---
+# StatefulSet for CouchDB
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -52,47 +86,27 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: NODENAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: COUCHDB_NODE_NAME
-              value: "couchdb@$(NODENAME).couchdb.car-app.svc.cluster.local"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: NODENAME
+              value: couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local
           command: ["/bin/bash", "-c"]
           args:
             - |
-              echo "[couchdb]
-              single_node = false
-
-              [cluster]
-              q = 8
-              n = 2
-              r = 2
-              w = 2
-
-              [httpd]
-              bind_address = 0.0.0.0
-
-              [chttpd]
-              bind_address = 0.0.0.0
-
-              [admins]
-              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
-
-              [secret]
-              cookie = ${COUCHDB_SECRET}
-
-              [log]
-              level = info
-              " > /opt/couchdb/etc/local.d/docker.ini && \
-              /opt/couchdb/bin/couchdb
+              envsubst < /etc/couchdb-template.ini > /opt/couchdb/etc/local.d/docker.ini
+              exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
+            - name: couchdb-config
+              mountPath: /etc/couchdb-template.ini
+              subPath: couchdb-template.ini
+      volumes:
+        - name: couchdb-config
+          configMap:
+            name: couchdb-config
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -103,6 +117,7 @@ spec:
             storage: 1Gi
         storageClassName: standard
 ---
+# Job to initialize the CouchDB cluster
 apiVersion: batch/v1
 kind: Job
 metadata:
