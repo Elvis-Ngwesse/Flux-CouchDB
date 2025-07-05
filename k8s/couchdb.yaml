@@ -57,7 +57,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: COUCHDB_NODE_NAME
-              value: "couchdb@$(NODENAME).couchdb.car-app.svc.cluster.local"
+              value: "couchdb@$(NODENAME).couchdb"
           command: ["/bin/bash", "-c"]
           args:
             - |
