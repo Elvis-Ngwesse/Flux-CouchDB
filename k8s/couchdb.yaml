@@ -133,10 +133,29 @@ spec:
 
               echo "✅ CouchDB nodes are reachable."
 
+              echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
+              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                -H "Content-Type: application/json" \
+                -d '{
+                      "action": "enable_cluster",
+                      "username": "'"${COUCHDB_USER}"'",
+                      "password": "'"${COUCHDB_PASSWORD}"'",
+                      "bind_address": "0.0.0.0",
+                      "node_count": "2",
+                      "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                      "remote_current_user": "'"${COUCHDB_USER}"'",
+                      "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
+                    }'
+
+              echo "🚀 Finishing cluster setup..."
+              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                -H "Content-Type: application/json" \
+                -d '{"action": "finish_cluster"}'
+
               echo "🚀 Creating _users database if it doesn't exist..."
               curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or creation failed"
 
-              echo "✅ CouchDB initialization job complete."
+              echo "✅ CouchDB cluster initialization complete."
           env:
             - name: COUCHDB_USER
               valueFrom:
