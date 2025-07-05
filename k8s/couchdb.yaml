@@ -133,24 +133,47 @@ spec:
 
               echo "✅ CouchDB nodes are reachable."
 
-              echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
-              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{
-                      "action": "enable_cluster",
-                      "username": "'"${COUCHDB_USER}"'",
-                      "password": "'"${COUCHDB_PASSWORD}"'",
-                      "bind_address": "0.0.0.0",
-                      "node_count": "2",
-                      "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
-                      "remote_current_user": "'"${COUCHDB_USER}"'",
-                      "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
-                    }'
+              echo "📡 Checking if cluster is already enabled..."
+              cluster_status=$(curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup)
+              if echo "$cluster_status" | grep -q '"state":"cluster_enabled"'; then
+                echo "✅ Cluster already enabled, skipping enable step."
+              else
+                echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
+                curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                        "action": "enable_cluster",
+                        "username": "'"${COUCHDB_USER}"'",
+                        "password": "'"${COUCHDB_PASSWORD}"'",
+                        "bind_address": "0.0.0.0",
+                        "node_count": "2",
+                        "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                        "remote_current_user": "'"${COUCHDB_USER}"'",
+                        "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
+                      }'
 
-              echo "🚀 Finishing cluster setup..."
-              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{"action": "finish_cluster"}'
+                echo "⏳ Waiting for cluster nodes to connect..."
+                for i in $(seq 1 30); do
+                  members=$(curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_membership)
+                  joined=$(echo "$members" | grep -c '"cluster_nodes":\["couchdb@couchdb-0.couchdb.car-app.svc.cluster.local","couchdb@couchdb-1.couchdb.car-app.svc.cluster.local"\]')
+                  if [ "$joined" -eq 1 ]; then
+                    echo "✅ Cluster nodes connected."
+                    break
+                  else
+                    echo "⏳ Nodes not connected yet, retrying in 5 seconds... ($i/30)"
+                    sleep 5
+                  fi
+                done
+
+                if [ "$joined" -ne 1 ]; then
+                  echo "⚠️ Timeout waiting for cluster nodes to connect. Cluster setup may fail."
+                fi
+
+                echo "🚀 Finishing cluster setup..."
+                curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                  -H "Content-Type: application/json" \
+                  -d '{"action": "finish_cluster"}'
+              fi
 
               echo "🚀 Creating _users database if it doesn't exist..."
               curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or creation failed"
