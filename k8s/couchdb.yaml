@@ -58,6 +58,10 @@ spec:
                   fieldPath: metadata.name
             - name: COUCHDB_NODE_NAME
               value: "couchdb@$(NODENAME).couchdb.car-app.svc.cluster.local"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           command: ["/bin/bash", "-c"]
           args:
             - |
