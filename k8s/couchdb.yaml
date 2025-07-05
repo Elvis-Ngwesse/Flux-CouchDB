@@ -40,7 +40,7 @@ spec:
             - |
               echo "Waiting for CouchDB to be ready..."
               for i in $(seq 1 20); do
-                if curl -f -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/; then
+                if curl -f -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://${POD_NAME}.couchdb.car-app.svc.cluster.local:5984/; then
                   echo "CouchDB is up!"
                   break
                 else
@@ -49,7 +49,7 @@ spec:
                 fi
               done
               echo "Creating _users database if not exists..."
-              curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/_users || echo "_users already exists or creation failed"
+              curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://${POD_NAME}.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users already exists or creation failed"
           env:
             - name: COUCHDB_USER
               valueFrom:
