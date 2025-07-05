@@ -74,7 +74,6 @@ minikube stop minikube delete --all
 minikube delete --all --purge
 
 🌐 
-https://github.com/settings/tokens
 
 flux bootstrap github \
   --owner=Elvis-Ngwesse \
