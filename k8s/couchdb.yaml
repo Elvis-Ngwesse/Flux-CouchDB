@@ -74,7 +74,6 @@ spec:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
           # Mount template file
-          volumeMounts:
             - name: config-template
               mountPath: /opt/couchdb/etc/local.d/docker.ini.template
               subPath: docker.ini.template
