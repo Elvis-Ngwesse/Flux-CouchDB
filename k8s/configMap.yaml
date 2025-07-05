@@ -6,35 +6,3 @@ metadata:
 data:
   REFRESH_INTERVAL: "30"
 
---- 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: couchdb-config-template
-  namespace: car-app
-data:
-  docker.ini.template: |
-    [couchdb]
-    single_node = false
-
-    [cluster]
-    q = 8
-    n = 2
-    r = 2
-    w = 2
-
-    [httpd]
-    bind_address = 0.0.0.0
-
-    [chttpd]
-    bind_address = 0.0.0.0
-
-    [admins]
-    ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
-
-    [secret]
-    cookie = ${COUCHDB_SECRET}
-
-    [log]
-    level = info
-

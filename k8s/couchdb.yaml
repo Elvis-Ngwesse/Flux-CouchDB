@@ -14,7 +14,6 @@ spec:
       name: http
       targetPort: 5984
       protocol: TCP
-
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -59,26 +58,37 @@ spec:
                   fieldPath: metadata.name
             - name: COUCHDB_NODE_NAME
               value: "couchdb@$(NODENAME).couchdb.car-app.svc.cluster.local"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-          command: ["/bin/sh", "-c"]
+          command: ["/bin/bash", "-c"]
           args:
             - |
-              apk add --no-cache gettext && \
-              envsubst < /opt/couchdb/etc/local.d/docker.ini.template > /opt/couchdb/etc/local.d/docker.ini && \
+              echo "[couchdb]
+              single_node = false
+
+              [cluster]
+              q = 8
+              n = 2
+              r = 2
+              w = 2
+
+              [httpd]
+              bind_address = 0.0.0.0
+
+              [chttpd]
+              bind_address = 0.0.0.0
+
+              [admins]
+              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
+
+              [secret]
+              cookie = ${COUCHDB_SECRET}
+
+              [log]
+              level = info
+              " > /opt/couchdb/etc/local.d/docker.ini && \
               exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
-            - name: couchdb-config-template
-              mountPath: /opt/couchdb/etc/local.d/docker.ini.template
-              subPath: docker.ini.template
-      volumes:
-        - name: couchdb-config-template
-          configMap:
-            name: couchdb-config-template
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -88,21 +98,65 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: couchdb-init
   namespace: car-app
+  labels:
+    app: couchdb-init
 spec:
-  backoffLimit: 3
+  backoffLimit: 5
   template:
+    metadata:
+      labels:
+        app: couchdb-init
     spec:
       restartPolicy: Never
       containers:
         - name: init
           image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "📡 Waiting for CouchDB nodes to become ready..."
+              until curl -s http://couchdb-0.couchdb.car-app.svc.cluster.local:5984; do
+                echo "⏳ Waiting for couchdb-0..."
+                sleep 3
+              done
+              until curl -s http://couchdb-1.couchdb.car-app.svc.cluster.local:5984; do
+                echo "⏳ Waiting for couchdb-1..."
+                sleep 3
+              done
+
+              echo "✅ CouchDB nodes are reachable."
+
+              echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
+              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                -H "Content-Type: application/json" \
+                -d '{
+                      "action": "enable_cluster",
+                      "username": "'"${COUCHDB_USER}"'",
+                      "password": "'"${COUCHDB_PASSWORD}"'",
+                      "bind_address": "0.0.0.0",
+                      "node_count": "2",
+                      "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                      "remote_current_user": "'"${COUCHDB_USER}"'",
+                      "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
+                    }'
+
+              echo "🚀 Finishing cluster setup..."
+              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                -H "Content-Type: application/json" \
+                -d '{"action": "finish_cluster"}'
+
+              echo "🚀 Creating _users database if it doesn't exist..."
+              curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or creation failed"
+
+              echo "✅ CouchDB initialization job complete."
+              echo "✅ CouchDB cluster initialization complete."
           env:
             - name: COUCHDB_USER
               valueFrom:
@@ -114,42 +168,3 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
-          command:
-            - /bin/sh
-            - -c
-            - |
-              set -e
-              echo "📡 Waiting for both CouchDB nodes..."
-              until curl -s couchdb-0.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
-              until curl -s couchdb-1.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
-              echo "✅ Both CouchDB nodes are reachable."
-
-              echo "🔐 Enabling cluster setup on couchdb-0..."
-              curl -s -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{
-                  "action": "enable_cluster",
-                  "bind_address":"0.0.0.0",
-                  "username": "'"${COUCHDB_USER}"'",
-                  "password": "'"${COUCHDB_PASSWORD}"'",
-                  "node_count": "2",
-                  "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
-                  "remote_current_user": "'"${COUCHDB_USER}"'",
-                  "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
-              }'
-
-              echo "🔁 Adding couchdb-1 node to cluster membership (_nodes)..."
-              curl -s -X PUT "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_nodes/couchdb@couchdb-1.couchdb.car-app.svc.cluster.local" || true
-
-              echo "✅ Finalizing the cluster setup..."
-              curl -s -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{"action": "finish_cluster"}'
-
-              echo "🧪 Verifying cluster status..."
-              curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_membership
-
-              echo "📁 Creating _users DB..."
-              curl -s -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or failed."
-
-              echo "✅ Cluster initialization done. Check _users is visible from couchdb-1."
