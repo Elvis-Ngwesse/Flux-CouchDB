@@ -83,3 +83,6 @@ flux bootstrap github \
 
 
 flux get kustomizations
+
+
+kubectl get pods -n flux-system
