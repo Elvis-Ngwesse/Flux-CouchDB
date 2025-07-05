@@ -4,4 +4,5 @@ resources:
   - namespaces.yaml
   - configMap.yaml
   - secret.yaml
+  - volume.yaml
   - couchdb.yaml
