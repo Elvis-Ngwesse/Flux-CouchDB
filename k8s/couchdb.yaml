@@ -15,6 +15,40 @@ spec:
       targetPort: 5984
       protocol: TCP
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: couchdb-config-template
+  namespace: car-app
+data:
+  docker.ini.template: |
+    [couchdb]
+    single_node = false
+
+    [cluster]
+    q = 8
+    n = 2
+    r = 2
+    w = 2
+
+    [httpd]
+    bind_address = 0.0.0.0
+
+    [chttpd]
+    bind_address = 0.0.0.0
+
+    [admins]
+    ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
+
+    [secret]
+    cookie = ${COUCHDB_SECRET}
+
+    [log]
+    level = info
+
+    [node]
+    name = ${COUCHDB_NODE_NAME}
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -56,49 +90,22 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: ERL_FLAGS
-              value: "-name couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"
-          command: ["/bin/bash", "-c"]
+            - name: COUCHDB_NODE_NAME
+              value: "couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"
+          command:
+            - /bin/sh
+            - -c
           args:
             - |
-              cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
-              [couchdb]
-              single_node = false
-
-              [cluster]
-              q = 8
-              n = 2
-              r = 2
-              w = 2
-
-              [httpd]
-              bind_address = 0.0.0.0
-
-              [chttpd]
-              bind_address = 0.0.0.0
-
-              [admins]
-              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
-
-              [secret]
-              cookie = ${COUCHDB_SECRET}
-
-              [log]
-              level = info
-
-              [node]
-              name = couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local
-              EOF
-
-              exec erl -pa /opt/couchdb/lib/*/ebin -boot start_sasl \
-                -sasl sasl_error_logger '{file,"/opt/couchdb/logs/sasl.log"}' \
-                -name couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local \
-                -setcookie ${COUCHDB_SECRET} \
-                -eval 'application:ensure_all_started(couch).' \
-                -noinput
+              apk add --no-cache gettext && \
+              envsubst < /opt/couchdb/etc/local.d/docker.ini.template > /opt/couchdb/etc/local.d/docker.ini && \
+              exec /docker-entrypoint.sh couchdb
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
+            - name: config-template
+              mountPath: /opt/couchdb/etc/local.d/docker.ini.template
+              subPath: docker.ini.template
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -139,8 +146,8 @@ spec:
             - |
               set -e
               echo "📡 Waiting for both CouchDB nodes..."
-              until curl -s "http://couchdb-0.couchdb.car-app.svc.cluster.local:5984"; do sleep 2; done
-              until curl -s "http://couchdb-1.couchdb.car-app.svc.cluster.local:5984"; do sleep 2; done
+              until curl -s couchdb-0.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
+              until curl -s couchdb-1.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
               echo "✅ Both CouchDB nodes are reachable."
 
               echo "🔐 Enabling cluster setup on couchdb-0..."
@@ -148,7 +155,7 @@ spec:
                 -H "Content-Type: application/json" \
                 -d '{
                   "action": "enable_cluster",
-                  "bind_address": "0.0.0.0",
+                  "bind_address":"0.0.0.0",
                   "username": "'"${COUCHDB_USER}"'",
                   "password": "'"${COUCHDB_PASSWORD}"'",
                   "node_count": "2",
