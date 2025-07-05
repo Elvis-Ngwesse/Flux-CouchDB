@@ -84,7 +84,6 @@ flux bootstrap github \
 
 flux get kustomizations
 
-
 kubectl get pods -n flux-system
 flux check
 kubectl -n flux-system delete pods --all
