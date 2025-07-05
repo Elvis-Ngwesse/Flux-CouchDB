@@ -87,3 +87,6 @@ flux get kustomizations
 kubectl get pods -n flux-system
 flux check
 kubectl -n flux-system delete pods --all
+kubectl -n flux-system get pods                       
+kubectl -n flux-system logs deployment/kustomize-controller -f
+flux reconcile kustomization flux-system --with-source
