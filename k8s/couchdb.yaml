@@ -67,7 +67,7 @@ spec:
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
-            - name: config-template
+            - name: couchdb-config-template
               mountPath: /opt/couchdb/etc/local.d/docker.ini.template
               subPath: docker.ini.template
   volumeClaimTemplates:
