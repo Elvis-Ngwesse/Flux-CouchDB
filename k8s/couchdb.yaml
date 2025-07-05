@@ -58,9 +58,8 @@ spec:
                   fieldPath: metadata.name
             - name: ERL_FLAGS
               value: "-name couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"
-          command:
-            - /bin/bash
-            - -c
+          command: ["/bin/bash", "-c"]
+          args:
             - |
               cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
               [couchdb]
@@ -91,15 +90,15 @@ spec:
               name = couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local
               EOF
 
-              exec /opt/couchdb/bin/couchdb
+              exec erl -pa /opt/couchdb/lib/*/ebin -boot start_sasl \
+                -sasl sasl_error_logger '{file,"/opt/couchdb/logs/sasl.log"}' \
+                -name couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local \
+                -setcookie ${COUCHDB_SECRET} \
+                -eval 'application:ensure_all_started(couch).' \
+                -noinput
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
-            - name: couchdb-config
-              mountPath: /opt/couchdb/etc/local.d
-      volumes:
-        - name: couchdb-config
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -149,7 +148,7 @@ spec:
                 -H "Content-Type: application/json" \
                 -d '{
                   "action": "enable_cluster",
-                  "bind_address":"0.0.0.0",
+                  "bind_address": "0.0.0.0",
                   "username": "'"${COUCHDB_USER}"'",
                   "password": "'"${COUCHDB_PASSWORD}"'",
                   "node_count": "2",
