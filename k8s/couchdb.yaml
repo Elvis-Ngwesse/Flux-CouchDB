@@ -15,6 +15,7 @@ spec:
       targetPort: 5984
       protocol: TCP
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -33,7 +34,7 @@ spec:
     spec:
       containers:
         - name: couchdb
-          image: couchdb:3
+          image: yourrepo/couchdb-envsubst:3.5.0  # Your custom image with envsubst installed
           ports:
             - containerPort: 5984
           env:
@@ -58,28 +59,17 @@ spec:
                   fieldPath: metadata.name
             - name: COUCHDB_NODE_NAME
               value: "couchdb@$(NODENAME).couchdb.car-app.svc.cluster.local"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-          command:
-            - /bin/sh
-            - -c
+          command: ["/bin/bash", "-c"]
           args:
             - |
-              apk add --no-cache gettext && \
               envsubst < /opt/couchdb/etc/local.d/docker.ini.template > /opt/couchdb/etc/local.d/docker.ini && \
-              exec /docker-entrypoint.sh couchdb
+              exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
             - name: config-template
               mountPath: /opt/couchdb/etc/local.d/docker.ini.template
               subPath: docker.ini.template
-      volumes:
-        - name: config-template
-          configMap:
-            name: couchdb-config-template
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -117,12 +107,11 @@ spec:
           command:
             - /bin/sh
             - -c
-          args:
             - |
               set -e
               echo "📡 Waiting for both CouchDB nodes..."
-              until curl -s couchdb-0.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
-              until curl -s couchdb-1.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
+              until curl -s http://couchdb-0.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
+              until curl -s http://couchdb-1.couchdb.car-app.svc.cluster.local:5984; do sleep 2; done
               echo "✅ Both CouchDB nodes are reachable."
 
               echo "🔐 Enabling cluster setup on couchdb-0..."
@@ -154,3 +143,5 @@ spec:
               curl -s -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or failed."
 
               echo "✅ Cluster initialization done. Check _users is visible from couchdb-1."
+      securityContext:
+        runAsUser: 0
