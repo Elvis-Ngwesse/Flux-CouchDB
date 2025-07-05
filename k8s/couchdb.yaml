@@ -34,6 +34,21 @@ spec:
       initContainers:
         - name: couchdb-init
           image: curlimages/curl:latest
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           command:
             - sh
             - -c
@@ -50,17 +65,6 @@ spec:
               done
               echo "Creating _users database if not exists..."
               curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://${POD_NAME}.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users already exists or creation failed"
-          env:
-            - name: COUCHDB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_USER
-            - name: COUCHDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_PASSWORD
       containers:
         - name: couchdb
           image: couchdb:3
