@@ -31,6 +31,36 @@ spec:
       labels:
         app: couchdb
     spec:
+      initContainers:
+        - name: couchdb-init
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for CouchDB to be ready..."
+              for i in $(seq 1 20); do
+                if curl -f -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/; then
+                  echo "CouchDB is up!"
+                  break
+                else
+                  echo "Still waiting for CouchDB..."
+                  sleep 3
+                fi
+              done
+              echo "Creating _users database if not exists..."
+              curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://localhost:5984/_users || echo "_users already exists or creation failed"
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
       containers:
         - name: couchdb
           image: couchdb:3
