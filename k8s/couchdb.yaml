@@ -85,7 +85,7 @@ spec:
               mountPath: /opt/couchdb/etc/local.d/docker.ini
               subPath: docker.ini
               readOnly: true
-            - name: couchdb-data
+            - name: couchdb-pvc
               mountPath: /opt/couchdb/data
       volumes:
         - name: couchdb-config
@@ -94,7 +94,7 @@ spec:
 
   volumeClaimTemplates:
     - metadata:
-        name: couchdb-data
+        name: couchdb-pvc
       spec:
         accessModes:
           - ReadWriteOnce
