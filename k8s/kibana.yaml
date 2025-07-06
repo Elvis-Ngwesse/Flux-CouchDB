@@ -30,7 +30,7 @@ spec:
                 path: kibana.yml.template
       initContainers:
         - name: config-init
-          image: busybox
+          image: bitnami/kubectl:latest
           command:
             - sh
             - -c
@@ -96,7 +96,6 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
-
 ---
 apiVersion: v1
 kind: Service
