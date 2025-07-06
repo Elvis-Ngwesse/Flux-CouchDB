@@ -25,11 +25,20 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: COUCHDB_USER
-              value: admin
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
             - name: COUCHDB_PASSWORD
-              value: password
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
             - name: COUCHDB_SECRET
-              value: monster
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
             - name: NODENAME
               value: couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local
             - name: COUCHDB_NODE_NAME
