@@ -50,9 +50,6 @@ spec:
             - name: config
               mountPath: /fluent-bit/etc/
               readOnly: true
-            - name: var-run
-              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -63,10 +60,6 @@ spec:
         - name: car-data-pvc
           persistentVolumeClaim:
             claimName: car-data-pvc
-        - name: var-run
-          hostPath:
-            path: /var/run/secrets/kubernetes.io/serviceaccount
-            type: Directory
 ---
 apiVersion: v1
 kind: ServiceAccount
