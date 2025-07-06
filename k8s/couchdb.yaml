@@ -6,7 +6,7 @@ metadata:
   labels:
     app: couchdb
 spec:
-  serviceName: "couchdb"  # must match Headless service
+  serviceName: "couchdb"
   replicas: 2
   selector:
     matchLabels:
@@ -16,6 +16,30 @@ spec:
       labels:
         app: couchdb
     spec:
+      initContainers:
+        - name: init-vmargs
+          image: busybox
+          command: ["/bin/sh", "-c"]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
+          volumeMounts:
+            - name: vmargs-template
+              mountPath: /vmargs-template
+            - name: vmargs-final
+              mountPath: /vmargs-final
+          args:
+            - |
+              cp /vmargs-template/vm.args /vmargs-final/vm.args && \
+              sed -i "s|\${COUCHDB_NODE_NAME}|couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local|g" /vmargs-final/vm.args && \
+              sed -i "s|\${COUCHDB_SECRET}|${COUCHDB_SECRET}|g" /vmargs-final/vm.args
       containers:
         - name: couchdb
           image: couchdb:3.3.2
@@ -39,8 +63,6 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: COUCHDB_NODE_NAME
-              value: "couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"
           ports:
             - name: couchdb
               containerPort: 5984
@@ -51,11 +73,6 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              # Replace vars in vm.args
-              envsubst < /opt/couchdb/etc/vm.args > /opt/couchdb/etc/vm.args.new && \
-              mv /opt/couchdb/etc/vm.args.new /opt/couchdb/etc/vm.args && \
-              
-              # Write config file
               echo "
               [couchdb]
               single_node = false
@@ -85,13 +102,15 @@ spec:
           volumeMounts:
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
-            - name: vmargs
+            - name: vmargs-final
               mountPath: /opt/couchdb/etc/vm.args
               subPath: vm.args
       volumes:
-        - name: vmargs
+        - name: vmargs-template
           configMap:
             name: couchdb-vmargs
+        - name: vmargs-final
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
@@ -101,7 +120,6 @@ spec:
         resources:
           requests:
             storage: 5Gi
-
 
 ---
 apiVersion: v1

@@ -16,3 +16,4 @@ data:
   vm.args: |
     -name ${COUCHDB_NODE_NAME}
     -setcookie ${COUCHDB_SECRET}
+
