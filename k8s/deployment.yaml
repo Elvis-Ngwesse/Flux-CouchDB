@@ -7,7 +7,7 @@ metadata:
   labels:
     app: car-data-generator
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: car-data-generator
@@ -22,7 +22,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: data-generator
-          image: dockerelvis/car-data-generator:latest
+          image: dockerelvis/data-generator:ac5071e
           imagePullPolicy: Always
           env:
             - name: COUCHDB_USER
@@ -82,7 +82,7 @@ metadata:
   labels:
     app: car-dashboard
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: car-dashboard
@@ -97,7 +97,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: dash-app
-          image: dockerelvis/car-dashboard:latest
+          image: dockerelvis/car-dashboard:ac5071e
           imagePullPolicy: Always
           ports:
             - containerPort: 8050
@@ -168,16 +168,3 @@ spec:
       protocol: TCP
 
 ---
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: car-dashboard
-  namespace: car-app
-spec:
-  to:
-    kind: Service
-    name: car-dashboard
-  port:
-    targetPort: http
-  tls:
-    termination: edge  # Enable TLS termination at the route (optional)

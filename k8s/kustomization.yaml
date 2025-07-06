@@ -7,3 +7,4 @@ resources:
   - volume.yaml
   - couchdb.yaml
   - influxdb.yaml
+  - deployment.yaml
