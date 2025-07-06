@@ -6,15 +6,5 @@ metadata:
 data:
   REFRESH_INTERVAL: "30"
 
---- 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: couchdb-vmargs
-  namespace: car-app
-data:
-  vm.args: |
-    -name couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local
-    -setcookie ${COUCHDB_SECRET}
 
 

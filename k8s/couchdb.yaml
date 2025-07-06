@@ -1,13 +1,45 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: v1
+kind: Service
 metadata:
   name: couchdb
   namespace: car-app
   labels:
     app: couchdb
 spec:
+  clusterIP: None
+  selector:
+    app: couchdb
+  ports:
+    - port: 5984
+      name: http
+      targetPort: 5984
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchdb
+  namespace: car-app
+  labels:
+    app: couchdb
+spec:
+  type: ClusterIP
+  selector:
+    app: couchdb
+  ports:
+    - port: 5984
+      targetPort: 5984
+      protocol: TCP
+      name: http
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: couchdb
+  namespace: car-app
+spec:
   serviceName: "couchdb"
-  replicas: 1                      # single node
+  replicas: 1
   selector:
     matchLabels:
       app: couchdb
@@ -16,37 +48,12 @@ spec:
       labels:
         app: couchdb
     spec:
-      initContainers:
-        - name: init-vmargs
-          image: alpine
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              apk add --no-cache gettext && \
-              envsubst < /vmargs-template/vm.args > /vmargs-final/vm.args
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: COUCHDB_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_SECRET
-          volumeMounts:
-            - name: vmargs-template
-              mountPath: /vmargs-template
-            - name: vmargs-final
-              mountPath: /vmargs-final
       containers:
         - name: couchdb
-          image: couchdb:3.3.2
+          image: couchdb:3
+          ports:
+            - containerPort: 5984
           env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
             - name: COUCHDB_USER
               valueFrom:
                 secretKeyRef:
@@ -62,19 +69,11 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-          ports:
-            - name: couchdb
-              containerPort: 5984
-            - name: epmd
-              containerPort: 4369
-            - name: metrics
-              containerPort: 9100
           command: ["/bin/bash", "-c"]
           args:
             - |
-              echo "
-              [couchdb]
-              single_node = true            # enable single node mode
+              echo "[couchdb]
+              single_node = true
 
               [httpd]
               bind_address = 0.0.0.0
@@ -91,63 +90,110 @@ spec:
               [log]
               level = info
               " > /opt/couchdb/etc/local.d/docker.ini && \
-              /opt/couchdb/bin/couchdb
+              exec /opt/couchdb/bin/couchdb
           volumeMounts:
-            - name: couchdb-pvc
+            - name: couchdb-data
               mountPath: /opt/couchdb/data
-            - name: vmargs-final
-              mountPath: /opt/couchdb/etc/vm.args
-              subPath: vm.args
-      volumes:
-        - name: vmargs-template
-          configMap:
-            name: couchdb-vmargs
-        - name: vmargs-final
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
-        name: couchdb-pvc
+        name: couchdb-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: standard
         resources:
           requests:
-            storage: 5Gi
+            storage: 1Gi
+        storageClassName: standard
 
 ---
-apiVersion: v1
-kind: Service
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: couchdb
+  name: couchdb-init
   namespace: car-app
   labels:
-    app: couchdb
+    app: couchdb-init
 spec:
-  type: ClusterIP
-  clusterIP: None
-  ports:
-    - port: 5984
-      name: http
-      protocol: TCP
-      targetPort: 5984
-  selector:
-    app: couchdb
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: couchdb-init
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init
+          image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "📡 Waiting for CouchDB nodes to become ready..."
+              until curl -s http://couchdb-0.couchdb.car-app.svc.cluster.local:5984; do
+                echo "⏳ Waiting for couchdb-0..."
+                sleep 3
+              done
+              until curl -s http://couchdb-1.couchdb.car-app.svc.cluster.local:5984; do
+                echo "⏳ Waiting for couchdb-1..."
+                sleep 3
+              done
 
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: couchdb-nodeport
-  namespace: car-app
-  labels:
-    app: couchdb
-spec:
-  type: NodePort
-  ports:
-    - port: 5984
-      name: http
-      nodePort: 30984
-      protocol: TCP
-      targetPort: 5984
-  selector:
-    app: couchdb
+              echo "✅ CouchDB nodes are reachable."
+
+              echo "📡 Checking if cluster is already enabled..."
+              cluster_status=$(curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup)
+              if echo "$cluster_status" | grep -q '"state":"cluster_enabled"'; then
+                echo "✅ Cluster already enabled, skipping enable step."
+              else
+                echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
+                curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                        "action": "enable_cluster",
+                        "username": "'"${COUCHDB_USER}"'",
+                        "password": "'"${COUCHDB_PASSWORD}"'",
+                        "bind_address": "0.0.0.0",
+                        "node_count": "2",
+                        "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                        "remote_current_user": "'"${COUCHDB_USER}"'",
+                        "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
+                      }'
+
+                echo "⏳ Waiting for cluster nodes to connect..."
+                for i in $(seq 1 30); do
+                  members=$(curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_membership)
+                  joined=$(echo "$members" | grep -c '"cluster_nodes":\["couchdb@couchdb-0.couchdb.car-app.svc.cluster.local","couchdb@couchdb-1.couchdb.car-app.svc.cluster.local"\]')
+                  if [ "$joined" -eq 1 ]; then
+                    echo "✅ Cluster nodes connected."
+                    break
+                  else
+                    echo "⏳ Nodes not connected yet, retrying in 5 seconds... ($i/30)"
+                    sleep 5
+                  fi
+                done
+
+                if [ "$joined" -ne 1 ]; then
+                  echo "⚠️ Timeout waiting for cluster nodes to connect. Cluster setup may fail."
+                fi
+
+                echo "🚀 Finishing cluster setup..."
+                curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
+                  -H "Content-Type: application/json" \
+                  -d '{"action": "finish_cluster"}'
+              fi
+
+              echo "🚀 Creating _users database if it doesn't exist..."
+              curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_users || echo "_users exists or creation failed"
+
+              echo "✅ CouchDB initialization job complete."
+              echo "✅ CouchDB cluster initialization complete."
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
