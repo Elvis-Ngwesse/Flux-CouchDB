@@ -43,6 +43,8 @@ spec:
               value: couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local
             - name: COUCHDB_NODE_NAME
               value: couchdb@$(POD_NAME).couchdb
+            - name: ERL_FLAGS
+              value: "-name couchdb@$(NODENAME) -setcookie monster"
           ports:
             - name: couchdb
               containerPort: 5984
