@@ -46,11 +46,6 @@ kind: StatefulSet
 metadata:
   name: couchdb
   namespace: car-app
-  labels:
-    app: couchdb
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   serviceName: "couchdb"
   replicas: 1
@@ -61,12 +56,46 @@ spec:
     metadata:
       labels:
         app: couchdb
-      annotations:
-        kustomize.toolkit.fluxcd.io/prune: "true"
-        kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
       securityContext:
         fsGroup: 1000
+      volumes:
+        - name: couchdb-config
+          configMap:
+            name: couchdb-config
+        - name: config-volume
+          emptyDir: {}
+      initContainers:
+        - name: config-init
+          image: alpine:3.18
+          command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache gettext
+              envsubst < /config/docker.ini > /config-out/docker.ini
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
+          volumeMounts:
+            - name: couchdb-config
+              mountPath: /config
+              readOnly: true
+            - name: config-volume
+              mountPath: /config-out
       containers:
         - name: couchdb
           image: couchdb:3
@@ -91,19 +120,11 @@ spec:
           volumeMounts:
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
-            - name: couchdb-config
+            - name: config-volume
               mountPath: /opt/couchdb/etc/local.d
-              readOnly: true
-      volumes:
-        - name: couchdb-config
-          configMap:
-            name: couchdb-config
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
-      annotations:
-        kustomize.toolkit.fluxcd.io/prune: "true"
-        kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
       spec:
         accessModes:
           - ReadWriteOnce
