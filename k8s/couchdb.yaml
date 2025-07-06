@@ -1,9 +1,11 @@
-
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: couchdb-nodeport
   namespace: car-app
+  labels:
+    app: couchdb
 spec:
   type: NodePort
   selector:
@@ -11,7 +13,7 @@ spec:
   ports:
     - port: 5984
       targetPort: 5984
-      nodePort: 30984   # or any port between 30000-32767
+      nodePort: 30984
       protocol: TCP
       name: http
 ---
@@ -20,6 +22,8 @@ kind: StatefulSet
 metadata:
   name: couchdb
   namespace: car-app
+  labels:
+    app: couchdb
 spec:
   serviceName: "couchdb"
   replicas: 1
@@ -55,7 +59,10 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              echo "[couchdb]
+              set -eux
+
+              cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
+              [couchdb]
               single_node = true
 
               [httpd]
@@ -72,7 +79,12 @@ spec:
 
               [log]
               level = info
-              " > /opt/couchdb/etc/local.d/docker.ini && \
+              EOF
+
+              echo "==== Generated CouchDB config ===="
+              cat /opt/couchdb/etc/local.d/docker.ini
+              echo "================================="
+
               exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-data
@@ -81,12 +93,12 @@ spec:
     - metadata:
         name: couchdb-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 1Gi
         storageClassName: standard
-
 ---
 apiVersion: batch/v1
 kind: Job
