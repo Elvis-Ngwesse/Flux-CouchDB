@@ -23,7 +23,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: data-generator
-          image: dockerelvis/data-generator:044a9c3
+          image: dockerelvis/data-generator:eaf35ae
           imagePullPolicy: Always
           env:
             - name: COUCHDB_USER
@@ -98,7 +98,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: dash-app
-          image: dockerelvis/car-dashboard:044a9c3
+          image: dockerelvis/car-dashboard:eaf35ae
           imagePullPolicy: Always
           ports:
             - containerPort: 8050

@@ -38,15 +38,16 @@ docker ps
 docker buildx create --use
 
 COMMIT_SHA=$(git rev-parse --short HEAD) && \
-docker buildx build --platform linux/amd64 \
+docker buildx build --platform linux/amd64,linux/arm64 \
   -t dockerelvis/car-dashboard:latest \
   -t dockerelvis/car-dashboard:$COMMIT_SHA \
   -f Dockerfile.app \
   --push .
 echo $COMMIT_SHA
+
 -----
 COMMIT_SHA=$(git rev-parse --short HEAD) && \
-docker buildx build --platform linux/amd64 \
+docker buildx build --platform linux/amd64,linux/arm64 \
   -t dockerelvis/data-generator:latest \
   -t dockerelvis/data-generator:$COMMIT_SHA \
   -f Dockerfile.data \
