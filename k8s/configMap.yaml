@@ -84,12 +84,14 @@ data:
         Keep_Log            Off
 
     [OUTPUT]
-        Name  es
-        Match *
-        Host  elasticsearch.car-logs.svc.cluster.local
-        Port  9200
-        Index car-${TAG}-logs
-        Type  _doc
+        Name               es
+        Match              car-*
+        Host               elasticsearch.car-logs.svc.cluster.local
+        Port               9200
+        Logstash_Format    On
+        Logstash_Prefix    car
+        Retry_Limit        False
+        Type               _doc
 
   parsers.conf: |
     [PARSER]
@@ -100,6 +102,7 @@ data:
         Time_Keep    On
         Decode_Field_As   escaped    log  do_next
         Decode_Field_As   json       log
+
 ---
 apiVersion: v1
 kind: ConfigMap
