@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: car-app-pvc
   namespace: car-app
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   accessModes:
     - ReadWriteMany
@@ -16,6 +18,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: car-data-pvc
   namespace: car-app
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   accessModes:
     - ReadWriteMany
@@ -29,6 +33,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: fluent-bit-logs-pvc
   namespace: car-logs
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   accessModes:
     - ReadWriteMany  
@@ -42,6 +48,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: couchdb-pvc
   namespace: car-app
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -49,13 +57,14 @@ spec:
     requests:
       storage: 10Gi
   storageClassName: standard
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: influxdb-pvc
   namespace: car-logs
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -63,3 +72,4 @@ spec:
     requests:
       storage: 2Gi
   storageClassName: standard
+---

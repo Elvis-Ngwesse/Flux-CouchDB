@@ -1,9 +1,14 @@
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: influxdb
   namespace: car-logs
+  labels:
+    app: influxdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   replicas: 1
   selector:
@@ -14,6 +19,8 @@ spec:
       labels:
         app: influxdb
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: influxdb
           image: influxdb:1.8
@@ -22,6 +29,13 @@ spec:
           volumeMounts:
             - name: influxdb-storage
               mountPath: /var/lib/influxdb
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           readinessProbe:
             httpGet:
               path: /ping
@@ -36,6 +50,9 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 20
             timeoutSeconds: 2
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
       volumes:
         - name: influxdb-storage
           persistentVolumeClaim:
@@ -47,6 +64,10 @@ kind: Service
 metadata:
   name: influxdb
   namespace: car-logs
+  labels:
+    app: influxdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   selector:
     app: influxdb
@@ -61,6 +82,10 @@ kind: Route
 metadata:
   name: influxdb
   namespace: car-logs
+  labels:
+    app: influxdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   to:
     kind: Service

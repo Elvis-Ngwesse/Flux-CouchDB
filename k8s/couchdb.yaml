@@ -7,7 +7,7 @@ metadata:
   labels:
     app: couchdb
 spec:
-  clusterIP: None       # headless service
+  clusterIP: None 
   selector:
     app: couchdb
   ports:
@@ -42,6 +42,8 @@ metadata:
   namespace: car-app
   labels:
     app: couchdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
 spec:
   serviceName: "couchdb"
   replicas: 1
@@ -52,6 +54,8 @@ spec:
     metadata:
       labels:
         app: couchdb
+      annotations:
+        kustomize.toolkit.fluxcd.io/prune: "true"
     spec:
       containers:
         - name: couchdb
@@ -74,49 +78,26 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              set -eux
-
-              cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
-              [couchdb]
-              single_node = true
-
-              [httpd]
-              bind_address = 0.0.0.0
-
-              [chttpd]
-              bind_address = 0.0.0.0
-
-              [admins]
-              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
-
-              [secret]
-              cookie = ${COUCHDB_SECRET}
-
-              [log]
-              level = info
-              EOF
-
-              echo "==== Generated CouchDB config ===="
-              cat /opt/couchdb/etc/local.d/docker.ini
-              echo "================================="
-
-              exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-data
               mountPath: /opt/couchdb/data
+            - name: couchdb-config
+              mountPath: /opt/couchdb/etc/local.d/docker.ini
+              subPath: docker.ini
+      volumes:
+        - name: couchdb-config
+          configMap:
+            name: couchdb-config
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
       spec:
-        accessModes:
-          - ReadWriteOnce
+        accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
             storage: 1Gi
         storageClassName: standard
+        
 ---
 apiVersion: batch/v1
 kind: Job
@@ -165,3 +146,44 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
+--- 
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clean-car-logs
+  namespace: car-app
+spec:
+  schedule: "*/2 * * * *"  # every 2 minutes
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleaner
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Starting log cleanup..."
+                  echo "Cleaning /app/logs (car-logs-pvc)"
+                  find /app/logs -type f -mtime +7 -print -delete
+                  echo "Cleaning /app/app_logs (car-app-pvc)"
+                  find /app/app_logs -type f -mtime +7 -print -delete
+                  echo "Cleanup complete"
+              volumeMounts:
+                - name: logs-pvc
+                  mountPath: /app/logs
+                - name: app-logs-pvc
+                  mountPath: /app/app_logs
+          volumes:
+            - name: logs-pvc
+              persistentVolumeClaim:
+                claimName: car-logs-pvc
+            - name: app-logs-pvc
+              persistentVolumeClaim:
+                claimName: car-app-pvc

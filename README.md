@@ -94,4 +94,4 @@ flux reconcile kustomization flux-system --with-source
 
 
 minikube service couchdb-nodeport -n car-app
-http://localhost:5984/_utils/
+http://http://127.0.0.1:port/_utils/
