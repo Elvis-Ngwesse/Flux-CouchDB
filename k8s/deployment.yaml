@@ -41,11 +41,6 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: INFLUXDB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: influxdb-secret
-                  key: INFLUXDB_TOKEN
             - name: INFLUXDB_URL
               value: http://influxdb.car-logs.svc.cluster.local:8086
             - name: COUCHDB_HOST
@@ -118,11 +113,6 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: INFLUXDB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: influxdb-secret
-                  key: INFLUXDB_TOKEN
             - name: INFLUXDB_URL
               value: http://influxdb.car-logs.svc.cluster.local:8086
             - name: COUCHDB_HOST
@@ -167,5 +157,4 @@ spec:
       port: 80
       targetPort: 8050
       protocol: TCP
-
 ---
