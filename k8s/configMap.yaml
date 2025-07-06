@@ -114,4 +114,5 @@ data:
     xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
     xpack.encryptedSavedObjects.encryptionKey: "${ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
     xpack.reporting.encryptionKey: "${REPORTING_ENCRYPTIONKEY}"
+    xpack.observabilityAiAssistant.enabled: false
 --- 

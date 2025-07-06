@@ -70,6 +70,9 @@ spec:
           env:
             - name: ELASTICSEARCH_HOSTS
               value: http://elasticsearch.car-logs.svc.cluster.local:9200
+            - name: TELEMETRY_ENABLED
+              value: "false"
+
           readinessProbe:
             httpGet:
               path: /
