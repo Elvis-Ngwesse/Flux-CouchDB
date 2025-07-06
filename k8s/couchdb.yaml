@@ -132,83 +132,88 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: couchdb-init
+  name: couchdb-init-cluster
   namespace: car-app
-  labels:
-    app: couchdb-init
 spec:
-  backoffLimit: 5
+  backoffLimit: 4
   template:
-    metadata:
-      labels:
-        app: couchdb-init
     spec:
-      restartPolicy: Never
+      restartPolicy: OnFailure
       containers:
-        - name: init
-          image: curlimages/curl:latest
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "📡 Waiting for CouchDB nodes to become ready..."
-              until curl -s http://couchdb-0.couchdb.car-app.svc.cluster.local:5984; do
-                echo "⏳ Waiting for couchdb-0..."
-                sleep 3
-              done
-              until curl -s http://couchdb-1.couchdb.car-app.svc.cluster.local:5984; do
-                echo "⏳ Waiting for couchdb-1..."
-                sleep 3
-              done
+      - name: couchdb-init
+        image: curlimages/curl:latest
+        env:
+          - name: COUCHDB_USER
+            valueFrom:
+              secretKeyRef:
+                name: couchdb-secret
+                key: COUCHDB_USER
+          - name: COUCHDB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: couchdb-secret
+                key: COUCHDB_PASSWORD
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
 
-              echo "✅ CouchDB nodes are reachable."
+            # Wait for CouchDB nodes to be reachable
+            echo "📡 Waiting for CouchDB nodes to become ready..."
 
-              echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
-              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{
-                      "action": "enable_cluster",
-                      "username": "'"${COUCHDB_USER}"'",
-                      "password": "'"${COUCHDB_PASSWORD}"'",
-                      "bind_address": "0.0.0.0",
-                      "node_count": "2",
-                      "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
-                      "remote_current_user": "'"${COUCHDB_USER}"'",
-                      "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
-                    }'
-
-              echo "🕵️ Waiting for both nodes to appear in _membership..."
-              attempt=1
-              until curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_membership | grep couchdb-1; do
-                echo "⏳ Nodes not connected yet, retrying in 5 seconds... ($attempt/30)"
-                attempt=$((attempt+1))
-                [ $attempt -gt 30 ] && echo "❌ Timed out waiting for nodes to connect" && exit 1
+            for node in couchdb-0 couchdb-1; do
+              until curl -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} -s http://${node}.couchdb.car-app.svc.cluster.local:5984/; do
+                echo "Waiting for $node..."
                 sleep 5
               done
+            done
 
-              echo "✅ Nodes are visible in cluster membership."
+            echo "✅ CouchDB nodes are reachable."
 
-              echo "🚀 Finishing cluster setup..."
-              curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
-                -H "Content-Type: application/json" \
-                -d '{"action": "finish_cluster"}'
+            # Enable cluster on couchdb-0 and add couchdb-1
+            echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
+            curl -X POST \
+              -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} \
+              -H "Content-Type: application/json" \
+              http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup \
+              -d '{
+                    "action": "enable_cluster",
+                    "username": "'"${COUCHDB_USER}"'",
+                    "password": "'"${COUCHDB_PASSWORD}"'",
+                    "bind_address": "0.0.0.0",
+                    "node_count": "2",
+                    "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                    "remote_current_user": "'"${COUCHDB_USER}"'",
+                    "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
+                  }'
 
-              echo "🗂️ Creating system databases..."
-              for db in _users _replicator _global_changes; do
-                echo "📁 Creating $db..."
-                curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/$db \
-                  || echo "$db exists or failed to create"
-              done
+            # Finish cluster setup
+            echo "🚀 Finishing cluster setup..."
+            curl -X POST \
+              -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} \
+              -H "Content-Type: application/json" \
+              http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup \
+              -d '{"action": "finish_cluster"}'
 
-              echo "✅ CouchDB cluster initialization complete."
-          env:
-            - name: COUCHDB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_USER
-            - name: COUCHDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_PASSWORD
+            # Create system databases
+            echo "🗂️ Creating system databases..."
+            for db in _users _replicator _global_changes; do
+              curl -X PUT \
+                -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} \
+                http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/${db} || echo "${db} exists or failed to create"
+            done
+
+            echo "✅ CouchDB cluster initialization complete."
+--- 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-nettools
+  namespace: car-app
+spec:
+  containers:
+  - name: debug
+    image: nicolaka/netshoot
+    command: ["sleep", "3600"]
+    tty: true
