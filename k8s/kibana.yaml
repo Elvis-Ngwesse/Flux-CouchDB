@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: kibana
   namespace: car-logs
+  labels:
+    app: kibana
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   replicas: 1
   selector:
@@ -13,6 +18,7 @@ spec:
       labels:
         app: kibana
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: kibana
           image: docker.elastic.co/kibana/kibana:8.13.0
@@ -37,6 +43,16 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
 
 ---
 apiVersion: v1
@@ -44,6 +60,11 @@ kind: Service
 metadata:
   name: kibana
   namespace: car-logs
+  labels:
+    app: kibana
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   selector:
     app: kibana
@@ -52,18 +73,3 @@ spec:
       port: 80
       targetPort: 5601
       protocol: TCP
-
----
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: kibana
-  namespace: car-logs
-spec:
-  to:
-    kind: Service
-    name: kibana
-  port:
-    targetPort: http
-  tls:
-    termination: edge
