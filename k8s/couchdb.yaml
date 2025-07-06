@@ -91,9 +91,7 @@ spec:
         - name: couchdb-config
           configMap:
             name: couchdb-config
-        - name: couchdb-data
-          persistentVolumeClaim:
-            claimName: couchdb-data
+
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
@@ -104,7 +102,7 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-        
+      
 ---
 apiVersion: batch/v1
 kind: Job
