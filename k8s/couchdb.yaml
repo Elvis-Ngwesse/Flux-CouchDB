@@ -67,46 +67,6 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-      volumes:
-        - name: couchdb-config
-          configMap:
-            name: couchdb-config
-        - name: config-volume
-          emptyDir: {}
-      initContainers:
-        - name: config-init
-          image: alpine:3.18
-          command:
-            - /bin/sh
-            - -c
-            - |
-              apk add --no-cache gettext && \
-              envsubst < /config/docker.ini > /config-out/docker.ini
-          env:
-            - name: COUCHDB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_USER
-            - name: COUCHDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_PASSWORD
-            - name: COUCHDB_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: couchdb-secret
-                  key: COUCHDB_SECRET
-            - name: SINGLE_NODE
-              value: "true"
-          volumeMounts:
-            - name: couchdb-config
-              mountPath: /config
-              readOnly: true
-            - name: config-volume
-              mountPath: /config-out
-              readOnly: false
       containers:
         - name: couchdb
           image: couchdb:3
@@ -128,19 +88,16 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: SINGLE_NODE
-              value: "true"
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              set -eux
-              cat /opt/couchdb/etc/local.d/docker.ini
-              exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
-            - name: config-volume
+            - name: couchdb-config
               mountPath: /opt/couchdb/etc/local.d
+              readOnly: true
+      volumes:
+        - name: couchdb-config
+          configMap:
+            name: couchdb-config
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
@@ -154,7 +111,6 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-
 
 ---
 apiVersion: batch/v1
