@@ -6,6 +6,9 @@ metadata:
   namespace: car-app
   labels:
     app: couchdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   clusterIP: None 
   selector:
@@ -24,6 +27,9 @@ metadata:
   namespace: car-app
   labels:
     app: couchdb
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   type: NodePort
   selector:
@@ -34,6 +40,7 @@ spec:
       nodePort: 30984
       protocol: TCP
       name: http
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -59,18 +66,6 @@ spec:
         kustomize.toolkit.fluxcd.io/prune: "true"
         kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
-      initContainers:
-        - name: copy-config
-          image: busybox:latest
-          command: ["/bin/sh", "-c"]
-          args:
-            - cp /config/docker.ini /writable/docker.ini
-          volumeMounts:
-            - name: couchdb-config
-              mountPath: /config
-              readOnly: true
-            - name: couchdb-config-writable
-              mountPath: /writable
       containers:
         - name: couchdb
           image: couchdb:3
@@ -92,17 +87,39 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -eux
+
+              cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
+              [couchdb]
+              single_node = true
+
+              [httpd]
+              bind_address = 0.0.0.0
+
+              [chttpd]
+              bind_address = 0.0.0.0
+
+              [admins]
+              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
+
+              [secret]
+              cookie = ${COUCHDB_SECRET}
+
+              [log]
+              level = info
+              EOF
+
+              echo "==== Generated CouchDB config ===="
+              cat /opt/couchdb/etc/local.d/docker.ini
+              echo "================================="
+
+              exec /opt/couchdb/bin/couchdb
           volumeMounts:
-            - name: couchdb-config-writable
-              mountPath: /opt/couchdb/etc/local.d
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
-      volumes:
-        - name: couchdb-config
-          configMap:
-            name: couchdb-config
-        - name: couchdb-config-writable
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
@@ -113,7 +130,7 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-   
+
 ---
 apiVersion: batch/v1
 kind: Job
@@ -122,12 +139,18 @@ metadata:
   namespace: car-app
   labels:
     app: couchdb-init
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   backoffLimit: 5
   template:
     metadata:
       labels:
         app: couchdb-init
+      annotations:
+        kustomize.toolkit.fluxcd.io/prune: "true"
+        kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
       restartPolicy: Never
       containers:
@@ -162,12 +185,16 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
+
 --- 
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: clean-car-logs
   namespace: car-app
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   schedule: "*/2 * * * *"  # every 2 minutes
   concurrencyPolicy: Replace
