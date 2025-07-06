@@ -20,8 +20,8 @@ spec:
         app: elasticsearch
     spec:
       securityContext:
-        runAsUser: 1000      
-        fsGroup: 1000        
+        runAsUser: 0    
+        fsGroup: 0        
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
