@@ -19,11 +19,54 @@ spec:
         app: kibana
     spec:
       terminationGracePeriodSeconds: 30
+      volumes:
+        - name: kibana-config
+          emptyDir: {}
+        - name: kibana-config-template
+          configMap:
+            name: kibana-config-template
+            items:
+              - key: kibana.yml.template
+                path: kibana.yml.template
+      initContainers:
+        - name: config-init
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              envsubst < /config/kibana.yml.template > /config/kibana.yml
+          env:
+            - name: XPACK_SECURITY_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: xpack_security_encryptionKey
+            - name: ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: xpack_encryptedSavedObjects_encryptionKey
+            - name: REPORTING_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: xpack_reporting_encryptionKey
+          volumeMounts:
+            - name: kibana-config
+              mountPath: /config
+            - name: kibana-config-template
+              mountPath: /config/kibana.yml.template
+              subPath: kibana.yml.template
       containers:
         - name: kibana
           image: docker.elastic.co/kibana/kibana:8.13.0
           ports:
             - containerPort: 5601
+          volumeMounts:
+            - name: kibana-config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
           env:
             - name: ELASTICSEARCH_HOSTS
               value: http://elasticsearch.car-logs.svc.cluster.local:9200
