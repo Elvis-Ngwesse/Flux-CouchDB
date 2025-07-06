@@ -41,7 +41,6 @@ spec:
       protocol: TCP
       name: http
 ---
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -68,10 +67,45 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-      volumes:                  # <--- Moved inside pod spec here
+      volumes:
         - name: couchdb-config
           configMap:
             name: couchdb-config
+        - name: config-volume
+          emptyDir: {}
+      initContainers:
+        - name: config-init
+          image: busybox:1.35
+          annotations:
+            kustomize.toolkit.fluxcd.io/prune: "true"
+            kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_PASSWORD
+            - name: COUCHDB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secret
+                  key: COUCHDB_SECRET
+          command:
+            - /bin/sh
+            - -c
+            - |
+              envsubst < /config/docker.ini > /config-out/docker.ini
+          volumeMounts:
+            - name: couchdb-config
+              mountPath: /config
+              readOnly: true
+            - name: config-volume
+              mountPath: /config-out
       containers:
         - name: couchdb
           image: couchdb:3
@@ -97,24 +131,19 @@ spec:
           args:
             - |
               set -eux
-
-              # Substitute env vars in the config file before starting CouchDB
-              envsubst < /etc/couchdb/docker.ini > /opt/couchdb/etc/local.d/docker.ini
-
-              echo "==== Generated CouchDB config ===="
               cat /opt/couchdb/etc/local.d/docker.ini
-              echo "================================="
-
               exec /opt/couchdb/bin/couchdb
           volumeMounts:
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
-            - name: couchdb-config
-              mountPath: /etc/couchdb
-              readOnly: true
+            - name: config-volume
+              mountPath: /opt/couchdb/etc/local.d
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
+      annotations:
+        kustomize.toolkit.fluxcd.io/prune: "true"
+        kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
       spec:
         accessModes:
           - ReadWriteOnce

@@ -21,6 +21,13 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+  initContainers:
+    - name: fix-permissions
+      image: busybox
+      command: ["sh", "-c", "chown -R 1000:1000 /var/lib/influxdb"]
+      volumeMounts:
+        - name: influxdb-storage
+          mountPath: /var/lib/influxdb
       containers:
         - name: influxdb
           image: influxdb:1.8
