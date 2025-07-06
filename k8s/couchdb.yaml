@@ -106,6 +106,7 @@ spec:
               readOnly: true
             - name: config-volume
               mountPath: /config-out
+              readOnly: false
       containers:
         - name: couchdb
           image: couchdb:3
