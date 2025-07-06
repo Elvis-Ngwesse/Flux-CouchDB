@@ -88,8 +88,7 @@ data:
         Match *
         Host  elasticsearch
         Port  9200
-        # Use tag dynamically in index name for separation:
-        Index car-${tag}-logs
+        Index car-${TAG}-logs
         Type  _doc
 
   parsers.conf: |

@@ -5,6 +5,9 @@ metadata:
   namespace: car-logs
   labels:
     app: elasticsearch
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   replicas: 1
   serviceName: elasticsearch
@@ -33,11 +36,14 @@ spec:
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
           volumeMounts:
-            - name: elasticsearch-data
+            - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
   volumeClaimTemplates:
     - metadata:
-        name: elasticsearch-data
+        name: elasticsearch-pvc
+        annotations:
+          kustomize.toolkit.fluxcd.io/prune: "true"
+          kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
       spec:
         storageClassName: standard  
         accessModes: 
@@ -54,6 +60,9 @@ metadata:
   namespace: car-logs
   labels:
     app: elasticsearch
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   selector:
     app: elasticsearch

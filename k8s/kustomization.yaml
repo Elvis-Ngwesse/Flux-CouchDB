@@ -9,3 +9,4 @@ resources:
   - influxdb.yaml
   - deployment.yaml
   - fluent-bit.yaml
+  - elasticsearch.yaml
