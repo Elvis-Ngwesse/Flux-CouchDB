@@ -77,18 +77,3 @@ spec:
       protocol: TCP
 
 ---
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: influxdb
-  namespace: car-logs
-  labels:
-    app: influxdb
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-spec:
-  to:
-    kind: Service
-    name: influxdb
-  port:
-    targetPort: 8086
