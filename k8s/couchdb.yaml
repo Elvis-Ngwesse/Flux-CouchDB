@@ -40,11 +40,11 @@ spec:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
             - name: NODENAME
-              value: couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local
+              value: "$(POD_NAME).couchdb.car-app.svc.cluster.local"    # just hostname, no 'couchdb@'
             - name: COUCHDB_NODE_NAME
-              value: couchdb@$(POD_NAME).couchdb
+              value: "couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"  # fully qualified node name with 'couchdb@'
             - name: ERL_FLAGS
-              value: "-name couchdb@$(NODENAME) -setcookie monster"
+              value: "-name $(COUCHDB_NODE_NAME) -setcookie monster"
           ports:
             - name: couchdb
               containerPort: 5984
