@@ -41,6 +41,7 @@ spec:
       protocol: TCP
       name: http
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -67,6 +68,10 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      volumes:                  # <--- Moved inside pod spec here
+        - name: couchdb-config
+          configMap:
+            name: couchdb-config
       containers:
         - name: couchdb
           image: couchdb:3
@@ -117,10 +122,6 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-  volumes:
-    - name: couchdb-config
-      configMap:
-        name: couchdb-config
 
 ---
 apiVersion: batch/v1
