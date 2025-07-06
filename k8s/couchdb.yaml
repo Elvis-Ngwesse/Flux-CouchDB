@@ -59,6 +59,18 @@ spec:
         kustomize.toolkit.fluxcd.io/prune: "true"
         kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
+      initContainers:
+        - name: copy-config
+          image: busybox:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - cp /config/docker.ini /writable/docker.ini
+          volumeMounts:
+            - name: couchdb-config
+              mountPath: /config
+              readOnly: true
+            - name: couchdb-config-writable
+              mountPath: /writable
       containers:
         - name: couchdb
           image: couchdb:3
@@ -81,17 +93,16 @@ spec:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
           volumeMounts:
-            - name: couchdb-config
-              mountPath: /opt/couchdb/etc/local.d/docker.ini
-              subPath: docker.ini
-              readOnly: true
+            - name: couchdb-config-writable
+              mountPath: /opt/couchdb/etc/local.d
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
       volumes:
         - name: couchdb-config
           configMap:
             name: couchdb-config
-
+        - name: couchdb-config-writable
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
@@ -102,7 +113,7 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-      
+   
 ---
 apiVersion: batch/v1
 kind: Job
