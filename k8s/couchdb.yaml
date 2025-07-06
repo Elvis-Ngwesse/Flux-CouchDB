@@ -10,7 +10,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: "true"
     kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
-  clusterIP: None       # headless service
+  clusterIP: None  
   selector:
     app: couchdb
   ports:
@@ -65,6 +65,8 @@ spec:
         kustomize.toolkit.fluxcd.io/prune: "true"
         kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: couchdb
           image: couchdb:3
@@ -91,25 +93,8 @@ spec:
             - |
               set -eux
 
-              cat <<EOF > /opt/couchdb/etc/local.d/docker.ini
-              [couchdb]
-              single_node = true
-
-              [httpd]
-              bind_address = 0.0.0.0
-
-              [chttpd]
-              bind_address = 0.0.0.0
-
-              [admins]
-              ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
-
-              [secret]
-              cookie = ${COUCHDB_SECRET}
-
-              [log]
-              level = info
-              EOF
+              # Substitute env vars in the config file before starting CouchDB
+              envsubst < /etc/couchdb/docker.ini > /opt/couchdb/etc/local.d/docker.ini
 
               echo "==== Generated CouchDB config ===="
               cat /opt/couchdb/etc/local.d/docker.ini
@@ -117,11 +102,14 @@ spec:
 
               exec /opt/couchdb/bin/couchdb
           volumeMounts:
-            - name: couchdb-data
+            - name: couchdb-pvc
               mountPath: /opt/couchdb/data
+            - name: couchdb-config
+              mountPath: /etc/couchdb
+              readOnly: true
   volumeClaimTemplates:
     - metadata:
-        name: couchdb-data
+        name: couchdb-pvc
       spec:
         accessModes:
           - ReadWriteOnce
@@ -129,6 +117,11 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
+  volumes:
+    - name: couchdb-config
+      configMap:
+        name: couchdb-config
+
 ---
 apiVersion: batch/v1
 kind: Job
