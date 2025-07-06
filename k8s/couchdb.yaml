@@ -18,8 +18,12 @@ spec:
     spec:
       initContainers:
         - name: init-vmargs
-          image: busybox
+          image: alpine
           command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk add --no-cache gettext && \
+              envsubst < /vmargs-template/vm.args > /vmargs-final/vm.args
           env:
             - name: POD_NAME
               valueFrom:
@@ -35,11 +39,6 @@ spec:
               mountPath: /vmargs-template
             - name: vmargs-final
               mountPath: /vmargs-final
-          args:
-            - |
-              cp /vmargs-template/vm.args /vmargs-final/vm.args && \
-              sed -i "s|\${COUCHDB_NODE_NAME}|couchdb@${POD_NAME}.couchdb.car-app.svc.cluster.local|g" /vmargs-final/vm.args && \
-              sed -i "s|\${COUCHDB_SECRET}|${COUCHDB_SECRET}|g" /vmargs-final/vm.args
       containers:
         - name: couchdb
           image: couchdb:3.3.2
@@ -131,14 +130,14 @@ metadata:
     app: couchdb
 spec:
   type: ClusterIP
-  clusterIP: None  # Headless service for StatefulSet
+  clusterIP: None
   ports:
     - port: 5984
       name: http
       protocol: TCP
       targetPort: 5984
   selector:
-    app: couchdb  # match StatefulSet pods
+    app: couchdb
 ---
 apiVersion: v1
 kind: Service
@@ -152,12 +151,12 @@ spec:
   ports:
     - port: 5984
       name: http
-      nodePort: 30984  # Exposes the port externally on each node
+      nodePort: 30984
       protocol: TCP
       targetPort: 5984
   selector:
     app: couchdb
---- 
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -188,9 +187,7 @@ spec:
           - |
             set -e
 
-            # Wait for CouchDB nodes to be reachable
             echo "📡 Waiting for CouchDB nodes to become ready..."
-
             for node in couchdb-0 couchdb-1; do
               until curl -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} -s http://${node}.couchdb.car-app.svc.cluster.local:5984/; do
                 echo "Waiting for $node..."
@@ -200,7 +197,6 @@ spec:
 
             echo "✅ CouchDB nodes are reachable."
 
-            # Enable cluster on couchdb-0 and add couchdb-1
             echo "🚀 Enabling cluster on couchdb-0 and adding couchdb-1..."
             curl -X POST \
               -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} \
@@ -212,12 +208,11 @@ spec:
                     "password": "'"${COUCHDB_PASSWORD}"'",
                     "bind_address": "0.0.0.0",
                     "node_count": "2",
-                    "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
+                    "remote_node": "couchdb@couchdb-1.couchdb.car-app.svc.cluster.local",
                     "remote_current_user": "'"${COUCHDB_USER}"'",
                     "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
                   }'
 
-            # Finish cluster setup
             echo "🚀 Finishing cluster setup..."
             curl -X POST \
               -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} \
@@ -225,7 +220,6 @@ spec:
               http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup \
               -d '{"action": "finish_cluster"}'
 
-            # Create system databases
             echo "🗂️ Creating system databases..."
             for db in _users _replicator _global_changes; do
               curl -X PUT \
@@ -234,7 +228,7 @@ spec:
             done
 
             echo "✅ CouchDB cluster initialization complete."
---- 
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -242,7 +236,7 @@ metadata:
   namespace: car-app
 spec:
   containers:
-  - name: debug
-    image: nicolaka/netshoot
-    command: ["sleep", "3600"]
-    tty: true
+    - name: debug
+      image: nicolaka/netshoot
+      command: ["sleep", "3600"]
+      tty: true
