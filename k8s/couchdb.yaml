@@ -10,7 +10,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: "true"
     kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
-  clusterIP: None 
+  clusterIP: None       # headless service
   selector:
     app: couchdb
   ports:
@@ -40,7 +40,6 @@ spec:
       nodePort: 30984
       protocol: TCP
       name: http
-
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -118,11 +117,11 @@ spec:
 
               exec /opt/couchdb/bin/couchdb
           volumeMounts:
-            - name: couchdb-pvc
+            - name: couchdb-data
               mountPath: /opt/couchdb/data
   volumeClaimTemplates:
     - metadata:
-        name: couchdb-pvc
+        name: couchdb-data
       spec:
         accessModes:
           - ReadWriteOnce
@@ -130,7 +129,6 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: standard
-
 ---
 apiVersion: batch/v1
 kind: Job
@@ -185,48 +183,3 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_PASSWORD
-
---- 
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: clean-car-logs
-  namespace: car-app
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
-spec:
-  schedule: "*/2 * * * *"  # every 2 minutes
-  concurrencyPolicy: Replace
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-            - name: cleaner
-              image: busybox:latest
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  echo "Starting log cleanup..."
-                  echo "Cleaning /app/logs (car-logs-pvc)"
-                  find /app/logs -type f -mtime +7 -print -delete
-                  echo "Cleaning /app/app_logs (car-app-pvc)"
-                  find /app/app_logs -type f -mtime +7 -print -delete
-                  echo "Cleanup complete"
-              volumeMounts:
-                - name: logs-pvc
-                  mountPath: /app/logs
-                - name: app-logs-pvc
-                  mountPath: /app/app_logs
-          volumes:
-            - name: logs-pvc
-              persistentVolumeClaim:
-                claimName: car-logs-pvc
-            - name: app-logs-pvc
-              persistentVolumeClaim:
-                claimName: car-app-pvc
