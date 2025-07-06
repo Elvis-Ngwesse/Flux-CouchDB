@@ -59,7 +59,7 @@ spec:
 
               [cluster]
               q = 8
-              n = 3
+              n = 2
               r = 2
               w = 2
 
@@ -172,10 +172,21 @@ spec:
                       "password": "'"${COUCHDB_PASSWORD}"'",
                       "bind_address": "0.0.0.0",
                       "node_count": "2",
-                      "remote_node": "couchdb-1.couchdb",
+                      "remote_node": "couchdb-1.couchdb.car-app.svc.cluster.local",
                       "remote_current_user": "'"${COUCHDB_USER}"'",
                       "remote_current_password": "'"${COUCHDB_PASSWORD}"'"
                     }'
+
+              echo "🕵️ Waiting for both nodes to appear in _membership..."
+              attempt=1
+              until curl -s -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/_membership | grep couchdb-1; do
+                echo "⏳ Nodes not connected yet, retrying in 5 seconds... ($attempt/30)"
+                attempt=$((attempt+1))
+                [ $attempt -gt 30 ] && echo "❌ Timed out waiting for nodes to connect" && exit 1
+                sleep 5
+              done
+
+              echo "✅ Nodes are visible in cluster membership."
 
               echo "🚀 Finishing cluster setup..."
               curl -X POST "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@couchdb-0.couchdb.car-app.svc.cluster.local:5984/_cluster_setup" \
@@ -183,10 +194,10 @@ spec:
                 -d '{"action": "finish_cluster"}'
 
               echo "🗂️ Creating system databases..."
-
               for db in _users _replicator _global_changes; do
                 echo "📁 Creating $db..."
-                curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/$db || echo "$db exists or failed to create"
+                curl -sf -X PUT -u ${COUCHDB_USER}:${COUCHDB_PASSWORD} http://couchdb-0.couchdb.car-app.svc.cluster.local:5984/$db \
+                  || echo "$db exists or failed to create"
               done
 
               echo "✅ CouchDB cluster initialization complete."
