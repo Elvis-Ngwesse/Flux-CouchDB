@@ -44,6 +44,7 @@ metadata:
     app: couchdb
   annotations:
     kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   serviceName: "couchdb"
   replicas: 1
@@ -56,6 +57,7 @@ spec:
         app: couchdb
       annotations:
         kustomize.toolkit.fluxcd.io/prune: "true"
+        kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
     spec:
       containers:
         - name: couchdb
@@ -79,20 +81,25 @@ spec:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
           volumeMounts:
-            - name: couchdb-data
-              mountPath: /opt/couchdb/data
             - name: couchdb-config
               mountPath: /opt/couchdb/etc/local.d/docker.ini
               subPath: docker.ini
+              readOnly: true
+            - name: couchdb-data
+              mountPath: /opt/couchdb/data
       volumes:
         - name: couchdb-config
           configMap:
             name: couchdb-config
+        - name: couchdb-data
+          persistentVolumeClaim:
+            claimName: couchdb-data
   volumeClaimTemplates:
     - metadata:
         name: couchdb-data
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 1Gi
