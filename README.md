@@ -93,5 +93,5 @@ flux reconcile kustomization flux-system --with-source
 
 
 
-kubectl port-forward -n car-app statefulset/couchdb 5984:5984
+minikube service couchdb-nodeport -n car-app
 http://localhost:5984/_utils/
