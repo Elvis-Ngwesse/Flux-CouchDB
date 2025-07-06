@@ -86,7 +86,7 @@ data:
     [OUTPUT]
         Name  es
         Match *
-        Host  elasticsearch
+        Host  elasticsearch.car-logs.svc.cluster.local
         Port  9200
         Index car-${TAG}-logs
         Type  _doc
