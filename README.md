@@ -90,3 +90,8 @@ kubectl -n flux-system delete pods --all
 kubectl -n flux-system get pods                       
 kubectl -n flux-system logs deployment/kustomize-controller -f
 flux reconcile kustomization flux-system --with-source
+
+
+
+kubectl port-forward -n car-app statefulset/couchdb 5984:5984
+http://localhost:5984/_utils/
