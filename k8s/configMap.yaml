@@ -6,3 +6,13 @@ metadata:
 data:
   REFRESH_INTERVAL: "30"
 
+--- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: couchdb-vmargs
+  namespace: car-app
+data:
+  vm.args: |
+    -name ${COUCHDB_NODE_NAME}
+    -setcookie ${COUCHDB_SECRET}

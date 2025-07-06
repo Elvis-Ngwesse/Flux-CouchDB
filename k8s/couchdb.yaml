@@ -6,7 +6,7 @@ metadata:
   labels:
     app: couchdb
 spec:
-  serviceName: "couchdb"  # must match a Headless service
+  serviceName: "couchdb"  # must match Headless service
   replicas: 2
   selector:
     matchLabels:
@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: couchdb
-          image: couchdb:3.3.2  # or keep 2.2.0 if you're targeting that version
+          image: couchdb:3.3.2
           env:
             - name: POD_NAME
               valueFrom:
@@ -39,12 +39,8 @@ spec:
                 secretKeyRef:
                   name: couchdb-secret
                   key: COUCHDB_SECRET
-            - name: NODENAME
-              value: "$(POD_NAME).couchdb.car-app.svc.cluster.local"    # just hostname, no 'couchdb@'
             - name: COUCHDB_NODE_NAME
-              value: "couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"  # fully qualified node name with 'couchdb@'
-            - name: ERL_FLAGS
-              value: "-name $(COUCHDB_NODE_NAME) -setcookie monster"
+              value: "couchdb@$(POD_NAME).couchdb.car-app.svc.cluster.local"
           ports:
             - name: couchdb
               containerPort: 5984
@@ -55,6 +51,11 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
+              # Replace vars in vm.args
+              envsubst < /opt/couchdb/etc/vm.args > /opt/couchdb/etc/vm.args.new && \
+              mv /opt/couchdb/etc/vm.args.new /opt/couchdb/etc/vm.args && \
+              
+              # Write config file
               echo "
               [couchdb]
               single_node = false
@@ -84,6 +85,13 @@ spec:
           volumeMounts:
             - name: couchdb-pvc
               mountPath: /opt/couchdb/data
+            - name: vmargs
+              mountPath: /opt/couchdb/etc/vm.args
+              subPath: vm.args
+      volumes:
+        - name: vmargs
+          configMap:
+            name: couchdb-vmargs
   volumeClaimTemplates:
     - metadata:
         name: couchdb-pvc
@@ -93,6 +101,7 @@ spec:
         resources:
           requests:
             storage: 5Gi
+
 
 ---
 apiVersion: v1
