@@ -19,7 +19,7 @@ metadata:
 data:
   docker.ini: |
     [couchdb]
-    single_node = true
+    single_node = ${SINGLE_NODE}
 
     [httpd]
     bind_address = 0.0.0.0
@@ -28,11 +28,11 @@ data:
     bind_address = 0.0.0.0
 
     [admins]
-    admin = admin
+    ${COUCHDB_USER} = ${COUCHDB_PASSWORD}
 
     [secret]
-    cookie = supersecret
+    cookie = ${COUCHDB_SECRET}
 
     [log]
     level = info
----
+--- 
