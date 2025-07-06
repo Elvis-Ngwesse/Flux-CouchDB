@@ -10,3 +10,4 @@ resources:
   - deployment.yaml
   - fluent-bit.yaml
   - elasticsearch.yaml
+  - kibana.yaml
