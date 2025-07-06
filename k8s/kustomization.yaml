@@ -8,3 +8,4 @@ resources:
   - couchdb.yaml
   - influxdb.yaml
   - deployment.yaml
+  - fluent-bit.yaml
