@@ -21,13 +21,13 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-  initContainers:
-    - name: fix-permissions
-      image: busybox
-      command: ["sh", "-c", "chown -R 1000:1000 /var/lib/influxdb"]
-      volumeMounts:
-        - name: influxdb-storage
-          mountPath: /var/lib/influxdb
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          command: ["sh", "-c", "chown -R 0:0 /var/lib/influxdb"]
+          volumeMounts:
+            - name: influxdb-storage
+              mountPath: /var/lib/influxdb
       containers:
         - name: influxdb
           image: influxdb:1.8
@@ -58,8 +58,7 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 2
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 0
       volumes:
         - name: influxdb-storage
           persistentVolumeClaim:
