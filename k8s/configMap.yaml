@@ -106,7 +106,6 @@ data:
         Port               9200
         Logstash_Format    On
         Logstash_Prefix    car
-        Type               _doc
         Retry_Limit        False
 
   parsers.conf: |
