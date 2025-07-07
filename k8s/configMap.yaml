@@ -71,21 +71,21 @@ data:
         HTTP_Listen  0.0.0.0
         HTTP_Port    2020
 
-    # Tail app logs
+    # Tail app logs with wildcard suffix for container/pod info
     [INPUT]
         Name              tail
         Path              /logs/app/*.log
-        Tag               car.app.*
+        Tag               car.app.logs.*
         DB                /fluent-bit/db/flb_car_app.db
         Parser            docker
         Refresh_Interval  5
         Read_From_Head    True
 
-    # Tail data logs
+    # Tail data logs with wildcard suffix for container/pod info
     [INPUT]
         Name              tail
         Path              /logs/data/*.log
-        Tag               car.data.*
+        Tag               car.data.logs.*
         DB                /fluent-bit/db/flb_car_data.db
         Parser            docker
         Refresh_Interval  5
@@ -101,7 +101,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-    # Kubernetes metadata enrichment for kube.* logs
+    # Kubernetes metadata enrichment for kube logs
     [FILTER]
         Name                kubernetes
         Match               kube.var.log.containers.*
@@ -112,32 +112,32 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Kubernetes metadata enrichment for car.* logs
+    # Kubernetes metadata enrichment for car app logs
     [FILTER]
         Name                kubernetes
-        Match               car.app.*
+        Match               car.app.logs.*
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
-        Kube_Tag_Prefix     car.app.
+        Kube_Tag_Prefix     car.app.logs.
         Merge_Log           On
         Keep_Log            Off
 
+    # Kubernetes metadata enrichment for car data logs
     [FILTER]
         Name                kubernetes
-        Match               car.data.*
+        Match               car.data.logs.*
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
-        Kube_Tag_Prefix     car.data.
+        Kube_Tag_Prefix     car.data.logs.
         Merge_Log           On
         Keep_Log            Off
-
 
     # Output to Elasticsearch
     [OUTPUT]
         Name               es
-        Match              kube.var.log.containers.*,car.*
+        Match              kube.var.log.containers.*,car.app.logs.*,car.data.logs.*
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
         Logstash_Format    On
