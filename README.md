@@ -100,7 +100,7 @@ http://http://127.0.0.1:port/_utils/
 
 minikube service kibana -n car-logs
 
-
+minikube service car-dashboard -n car-app 
 
 minikube service elasticsearch -n car-logs 
 curl http://127.0.0.1:port/_cluster/health?pretty
@@ -109,3 +109,39 @@ curl http://127.0.0.1:port/_cat/indices?v
 
 kubectl delete namespace car-app
 kubectl delete namespace car-logs
+
+
+
+
+
+
+
+
+
+
+
+✅ Fix: Create a Data View in Kibana
+You need to manually create a new Kibana Data View for your actual index pattern.
+
+🛠 Steps:
+Go to Kibana → Stack Management → Data Views
+
+Click "Create data view"
+
+Use:
+
+Data view name: car-logs
+
+Index pattern: car-*
+
+Set a timestamp field (e.g., @timestamp) if available, or choose "I don’t want to use the time filter".
+
+Save.
+
+
+
+🔁 After Fixes, Refresh Fields in Kibana
+Go to Kibana > Stack Management > Index Go to Kibana > Stack Management > Index Patterns
+
+
+Go to discover to see logs that r indexed
