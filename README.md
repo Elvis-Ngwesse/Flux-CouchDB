@@ -68,6 +68,10 @@ minikube ssh --node=minikube-m03
 
 kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
 
+kubectl label node minikube-m02 node-role.kubernetes.io/worker=""
+kubectl label node minikube-m03 node-role.kubernetes.io/worker=""
+
+
 minikube stop minikube delete --all
 minikube delete --all --purge
 

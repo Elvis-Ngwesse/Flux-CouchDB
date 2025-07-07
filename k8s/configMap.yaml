@@ -104,7 +104,7 @@ data:
         Match              car-*
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
-        Logstash_Format    On
+        Logstash_Format    Off
         Logstash_Prefix    car
         Type               _doc
         Retry_Limit        False
