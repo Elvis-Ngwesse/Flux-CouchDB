@@ -108,7 +108,6 @@ data:
         Logstash_Prefix    car
         Retry_Limit        False
         Suppress_Type_Name On
-        Index_Settings     {"settings":{"number_of_replicas":"0"}}
 
   parsers.conf: |
     [PARSER]
