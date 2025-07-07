@@ -58,24 +58,23 @@ data:
         HTTP_Port    2020
 
     [INPUT]
-        Name          tail
-        Path          /logs/app/*.log
-        Tag           car-app
-        DB            /var/log/flb_car_app.db
-        Parser        docker
-        Refresh_Interval 5
+        Name              tail
+        Path              /logs/app/*.log
+        Tag               car-app
+        DB                /var/log/flb_car_app.db
+        Parser            docker
+        Refresh_Interval  5
         Read_From_Head    True
 
     [INPUT]
-        Name          tail                      
-        Path          /logs/data/*.log        
-        Tag           car-data               
-        DB            /var/log/flb_car_data.db 
-        Parser        docker                 
-        Refresh_Interval 5         
+        Name              tail
+        Path              /logs/data/*.log
+        Tag               car-data
+        DB                /var/log/flb_car_data.db
+        Parser            docker
+        Refresh_Interval  5
         Read_From_Head    True
 
-    
     [FILTER]
         Name                kubernetes
         Match               car-*
