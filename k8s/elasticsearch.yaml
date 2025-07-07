@@ -43,7 +43,14 @@ spec:
             - name: xpack.security.enabled
               value: "false"
             - name: ES_JAVA_OPTS
-              value: "-Xms512m -Xmx512m"
+              value: "-Xms1g -Xmx1g"   # Increased JVM heap to 1GB
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "3Gi"
+              cpu: "2"
           volumeMounts:
             - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
@@ -60,7 +67,6 @@ spec:
         resources:
           requests:
             storage: 3Gi
-
 ---
 apiVersion: v1
 kind: Service
