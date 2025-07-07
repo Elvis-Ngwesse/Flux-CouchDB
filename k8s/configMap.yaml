@@ -114,7 +114,7 @@ data:
         Name         docker
         Format       json
         Time_Key     time
-        Time_Format  %Y-%m-%dT%H:%M:%S
+        Time_Format  %Y-%m-%dT%H:%M:%S.%L%z
         Time_Keep    On
         Decode_Field_As   escaped    log  do_next
         Decode_Field_As   json       log
