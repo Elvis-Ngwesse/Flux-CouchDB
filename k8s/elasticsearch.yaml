@@ -9,7 +9,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: "true"
     kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
-  replicas: 2
+  replicas: 1
   serviceName: elasticsearch
   selector:
     matchLabels:
@@ -49,8 +49,8 @@ spec:
               cpu: "0.5"
               memory: "1Gi"
             limits:
-              memory: "1Gi"
-              cpu: "2"
+              memory: "2Gi"
+              cpu: "3"
           volumeMounts:
             - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
