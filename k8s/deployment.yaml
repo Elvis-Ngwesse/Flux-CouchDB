@@ -53,16 +53,6 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
-          readinessProbe:
-            exec:
-              command: ["ls", "/app/logs"]
-            initialDelaySeconds: 10
-            periodSeconds: 15
-          livenessProbe:
-            exec:
-              command: ["ls", "/app/logs"]
-            initialDelaySeconds: 30
-            periodSeconds: 30
       volumes:
         - name: logs
           persistentVolumeClaim:
@@ -124,18 +114,6 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8050
-            initialDelaySeconds: 10
-            periodSeconds: 15
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8050
-            initialDelaySeconds: 30
-            periodSeconds: 30
       volumes:
         - name: logs
           persistentVolumeClaim:
