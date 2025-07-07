@@ -44,8 +44,8 @@ metadata:
 data:
   kibana.yml.template: |
     server.host: "0.0.0.0"
+    server.port: 5601
     elasticsearch.hosts: ["http://elasticsearch.car-logs.svc.cluster.local:9200"]
-
     xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
     xpack.encryptedSavedObjects.encryptionKey: "${ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
     xpack.reporting.encryptionKey: "${REPORTING_ENCRYPTIONKEY}"
