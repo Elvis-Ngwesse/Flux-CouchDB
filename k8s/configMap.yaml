@@ -113,7 +113,7 @@ data:
         Keep_Log            Off
 
     # Kubernetes metadata enrichment for car.* logs
-        [FILTER]
+    [FILTER]
         Name                kubernetes
         Match               car.app.*
         Kube_URL            https://kubernetes.default.svc:443
