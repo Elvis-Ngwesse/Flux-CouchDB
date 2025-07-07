@@ -99,4 +99,4 @@ minikube service kibana -n car-logs
 
 
 minikube service elasticsearch -n car-logs 
-curl http://127.0.0.1:58022/_cat/indices?v
+curl http://127.0.0.1:60059/_cat/indices?v

@@ -14,9 +14,20 @@ import re
 # Load environment variables
 load_dotenv()
 
+# Ensure log directory exists
+log_dir = "/app/logs"
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "app.log")
+
 # Setup logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()  # Also logs to stdout for Kubernetes logging
+        ]
+)
 logger = logging.getLogger()
 
 # CouchDB connection details

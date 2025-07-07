@@ -64,14 +64,17 @@ data:
         DB            /var/log/flb_car_app.db
         Parser        docker
         Refresh_Interval 5
+        Read_From_Head    True
 
     [INPUT]
-        Name          tail
-        Path          /logs/data/*.log
-        Tag           car-data
-        DB            /var/log/flb_car_data.db
-        Parser        docker
-        Refresh_Interval 5
+        Name          tail                     # Use the 'tail' plugin to collect logs from files
+        Path          /logs/data/*.log         # Path to the log files to be tailed (supports wildcards)
+        Tag           car-data                 # Tag applied to all records from this input
+        DB            /var/log/flb_car_data.db # SQLite DB file to store offset info (helps with crash recovery)
+        Parser        docker                   # Parser used to parse each line (predefined 'docker' parser)
+        Refresh_Interval 5                     # Time interval (in seconds) to scan for new files
+        Read_From_Head    True
+
     
     [FILTER]
         Name                kubernetes
