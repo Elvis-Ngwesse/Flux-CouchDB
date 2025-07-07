@@ -94,7 +94,6 @@ data:
         Logstash_Format    On
         Logstash_Prefix    car
         Retry_Limit        False
-        Type               _doc
 
   parsers.conf: |
     [PARSER]
