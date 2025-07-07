@@ -21,6 +21,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
+      initContainers:
+        - name: fix-perms
+          image: busybox
+          command: ["sh", "-c", "chown -R 1001:1001 /app/logs"]
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
       containers:
         - name: data-generator
           image: dockerelvis/data-generator:9644b5e
@@ -91,6 +98,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
+      initContainers:
+        - name: fix-perms
+          image: busybox
+          command: ["sh", "-c", "chown -R 1001:1001 /app/logs"]
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
       containers:
         - name: dash-app
           image: dockerelvis/car-dashboard:9644b5e
