@@ -46,11 +46,11 @@ spec:
               value: "-Xms1g -Xmx1g"   # Increased JVM heap to 1GB
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1"
+              cpu: "500"
+              memory: "1Gi"
             limits:
-              memory: "3Gi"
-              cpu: "2"
+              memory: "1Gi"
+              cpu: "2Gi"
           volumeMounts:
             - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
