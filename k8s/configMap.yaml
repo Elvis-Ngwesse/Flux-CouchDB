@@ -101,7 +101,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-    # Kubernetes enrichment for container logs
+    # Kubernetes enrichment for Kubernetes container logs (with tag prefix)
     [FILTER]
         Name                kubernetes
         Match               kube.var.log.containers.*
@@ -112,7 +112,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Kubernetes enrichment for data logs (no Kube_Tag_Prefix)
+    # Kubernetes enrichment for app + data logs (NO tag prefix here)
     [FILTER]
         Name                kubernetes
         Match               car_*
