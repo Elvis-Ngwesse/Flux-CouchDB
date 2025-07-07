@@ -101,7 +101,7 @@ data:
 
     [OUTPUT]
         Name               es
-        Match              car-*
+        Match              car-app,car-data
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
         Logstash_Format    On
