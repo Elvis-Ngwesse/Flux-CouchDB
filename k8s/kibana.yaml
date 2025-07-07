@@ -26,8 +26,6 @@ spec:
             - name: kibana-config
               mountPath: /usr/share/kibana/config/kibana.yml
               subPath: kibana.yml
-            - name: kibana-data
-              mountPath: /usr/share/kibana/data
           resources:
             requests:
               memory: "256Mi"
@@ -39,9 +37,7 @@ spec:
         - name: kibana-config
           configMap:
             name: kibana-config
-        - name: kibana-data
-          persistentVolumeClaim:
-            claimName: kibana-pvc
+
 --- 
 apiVersion: v1
 kind: Service

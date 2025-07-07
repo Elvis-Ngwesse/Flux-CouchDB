@@ -87,17 +87,4 @@ spec:
     requests:
       storage: 2Gi
   storageClassName: standard
---- 
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: kibana-pvc
-  namespace: car-logs
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+
