@@ -54,9 +54,7 @@ data:
     xpack.security.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
     xpack.reporting.encryptionKey: "another-32-byte-random-key-for-dev!"
     xpack.reporting.kibanaServer.hostname: "localhost"
-    xpack.screenshotting.browser.chromium.disableSandbox: true
-
-    
+    xpack.screenshotting.browser.chromium.disableSandbox: true 
 --- 
 apiVersion: v1
 kind: ConfigMap

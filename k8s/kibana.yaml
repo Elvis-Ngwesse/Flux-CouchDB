@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: kibana
   namespace: car-logs
+  labels:
+    app: kibana
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   replicas: 1
   selector:
@@ -12,32 +17,50 @@ spec:
     metadata:
       labels:
         app: kibana
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "5601"
-        fluxcd.io/automated: "true"
     spec:
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: kibana-config
+          configMap:
+            name: kibana-config
+            items:
+              - key: kibana.yml
+                path: kibana.yml
       containers:
         - name: kibana
-          image: docker.io/library/kibana:9.0.2
+          image: docker.elastic.co/kibana/kibana:9.0.2
           ports:
             - containerPort: 5601
           volumeMounts:
             - name: kibana-config
               mountPath: /usr/share/kibana/config/kibana.yml
               subPath: kibana.yml
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5601
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5601
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              cpu: "0.5"
+              memory: "1Gi"
             limits:
-              memory: "512Mi"
-              cpu: "200m"
-      volumes:
-        - name: kibana-config
-          configMap:
-            name: kibana-config
-
+              cpu: "3"
+              memory: "2Gi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
 --- 
 apiVersion: v1
 kind: Service
