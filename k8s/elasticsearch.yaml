@@ -9,7 +9,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: "true"
     kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
-  replicas: 2
+  replicas: 1
   serviceName: elasticsearch
   selector:
     matchLabels:
