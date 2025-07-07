@@ -39,16 +39,17 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kibana-config-template
+  name: kibana-config
   namespace: car-logs
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 data:
-  kibana.yml.template: |
+  kibana.yml: |
+    server.name: kibana
     server.host: "0.0.0.0"
-    server.port: 5601
-    elasticsearch.hosts: ["http://elasticsearch.car-logs.svc.cluster.local:9200"]
-    xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
-    xpack.encryptedSavedObjects.encryptionKey: "${ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
-    xpack.reporting.encryptionKey: "${REPORTING_ENCRYPTIONKEY}"
+    elasticsearch.hosts: [ "http://elasticsearch.car-logs.svc.cluster.local:9200" ]
+    monitoring.ui.container.elasticsearch.enabled: true
 --- 
 apiVersion: v1
 kind: ConfigMap

@@ -3,11 +3,6 @@ kind: Deployment
 metadata:
   name: kibana
   namespace: car-logs
-  labels:
-    app: kibana
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
   replicas: 1
   selector:
@@ -17,105 +12,48 @@ spec:
     metadata:
       labels:
         app: kibana
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5601"
+        fluxcd.io/automated: "true"
     spec:
-      terminationGracePeriodSeconds: 30
-      volumes:
-        - name: kibana-config
-          emptyDir: {}
-        - name: kibana-config-template
-          configMap:
-            name: kibana-config-template
-            items:
-              - key: kibana.yml.template
-                path: kibana.yml.template
-      initContainers:
-        - name: config-init
-          image: bitnami/kubectl:latest
-          command:
-            - sh
-            - -c
-            - |
-              envsubst < /config/kibana.yml.template > /config/kibana.yml
-          env:
-            - name: XPACK_SECURITY_ENCRYPTIONKEY
-              valueFrom:
-                secretKeyRef:
-                  name: kibana-encryption-keys
-                  key: xpack_security_encryptionKey
-            - name: ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
-              valueFrom:
-                secretKeyRef:
-                  name: kibana-encryption-keys
-                  key: xpack_encryptedSavedObjects_encryptionKey
-            - name: REPORTING_ENCRYPTIONKEY
-              valueFrom:
-                secretKeyRef:
-                  name: kibana-encryption-keys
-                  key: xpack_reporting_encryptionKey
-          volumeMounts:
-            - name: kibana-config
-              mountPath: /config
-            - name: kibana-config-template
-              mountPath: /config/kibana.yml.template
-              subPath: kibana.yml.template
       containers:
         - name: kibana
-          image: docker.elastic.co/kibana/kibana:9.0.2
+          image: docker.io/library/kibana:8.11.4
           ports:
             - containerPort: 5601
           volumeMounts:
             - name: kibana-config
               mountPath: /usr/share/kibana/config/kibana.yml
               subPath: kibana.yml
-          env:
-            - name: ELASTICSEARCH_HOSTS
-              value: http://elasticsearch.car-logs.svc.cluster.local:9200
-            - name: TELEMETRY_ENABLED
-              value: "false"
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 5601
-            initialDelaySeconds: 60  # increased to allow startup time
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 5601
-            initialDelaySeconds: 120  # increased to allow startup time
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 5
+            - name: kibana-data
+              mountPath: /usr/share/kibana/data
           resources:
             requests:
-              cpu: "0.5"
-              memory: "1Gi"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
-              cpu: "3"
-              memory: "2Gi"
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-
----
+              memory: "512Mi"
+              cpu: "200m"
+      volumes:
+        - name: kibana-config
+          configMap:
+            name: kibana-config
+        - name: kibana-data
+          persistentVolumeClaim:
+            claimName: kibana-pvc
+--- 
 apiVersion: v1
 kind: Service
 metadata:
   name: kibana
   namespace: car-logs
-  labels:
-    app: kibana
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-    kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
+  type: NodePort
   selector:
     app: kibana
   ports:
-    - name: http
-      port: 80
+    - protocol: TCP
+      port: 5601
       targetPort: 5601
-      protocol: TCP
+      nodePort: 30601
