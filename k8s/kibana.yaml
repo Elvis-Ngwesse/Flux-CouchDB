@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: kibana
-          image: docker.io/library/kibana:8.11.4
+          image: docker.io/library/kibana:9.0.2
           ports:
             - containerPort: 5601
           volumeMounts:

@@ -50,6 +50,13 @@ data:
     server.host: "0.0.0.0"
     elasticsearch.hosts: [ "http://elasticsearch.car-logs.svc.cluster.local:9200" ]
     monitoring.ui.container.elasticsearch.enabled: true
+    xpack.encryptedSavedObjects.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
+    xpack.security.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
+    xpack.reporting.encryptionKey: "another-32-byte-random-key-for-dev!"
+    xpack.reporting.kibanaServer.hostname: "localhost"
+    xpack.screenshotting.browser.chromium.disableSandbox: true
+
+    
 --- 
 apiVersion: v1
 kind: ConfigMap
