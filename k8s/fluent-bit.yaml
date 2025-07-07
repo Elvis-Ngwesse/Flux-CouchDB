@@ -19,8 +19,13 @@ spec:
         app: fluent-bit
     spec:
       serviceAccountName: fluent-bit-sa
-      nodeSelector:
-        node-role.kubernetes.io/worker: ""
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: DoesNotExist
       containers:
         - name: fluent-bit
           image: fluent/fluent-bit:2.1
