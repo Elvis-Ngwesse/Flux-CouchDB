@@ -107,6 +107,7 @@ data:
         Logstash_Format    On
         Logstash_Prefix    car
         Retry_Limit        False
+        Suppress_Type_Name On
 
   parsers.conf: |
     [PARSER]
