@@ -71,7 +71,7 @@ data:
         HTTP_Listen  0.0.0.0
         HTTP_Port    2020
 
-    # Tail app logs
+    # Tail application logs
     [INPUT]
         Name              tail
         Path              /logs/app/*.log
@@ -81,7 +81,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    True
 
-    # Tail data logs
+    # Tail data generator logs
     [INPUT]
         Name              tail
         Path              /logs/data/*.log
@@ -101,7 +101,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-    # Kubernetes metadata enrichment
+    # Enrich Kubernetes logs
     [FILTER]
         Name                kubernetes
         Match               kube.var.log.containers.*
@@ -112,6 +112,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
+    # Enrich app logs (static tag, no prefix)
     [FILTER]
         Name                kubernetes
         Match               car_app
@@ -121,6 +122,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
+    # Enrich data logs (static tag, no prefix)
     [FILTER]
         Name                kubernetes
         Match               car_data
@@ -130,7 +132,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Output to Elasticsearch
+    # Output all logs to Elasticsearch
     [OUTPUT]
         Name               es
         Match              kube.var.log.containers.*,car_*
