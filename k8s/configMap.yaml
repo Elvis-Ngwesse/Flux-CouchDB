@@ -71,6 +71,7 @@ data:
         HTTP_Listen  0.0.0.0
         HTTP_Port    2020
 
+    # Tail app logs
     [INPUT]
         Name              tail
         Path              /logs/app/*.log
@@ -80,6 +81,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    True
 
+    # Tail data logs
     [INPUT]
         Name              tail
         Path              /logs/data/*.log
@@ -89,18 +91,20 @@ data:
         Refresh_Interval  5
         Read_From_Head    True
 
+    # Tail Kubernetes container logs
     [INPUT]
         Name              tail
         Path              /var/log/containers/*.log
-        Tag               kube.*
+        Tag               kube.var.log.containers.*
         DB                /fluent-bit/db/flb_kube.db
         Parser            docker
         Refresh_Interval  5
         Read_From_Head    False
 
+    # Kubernetes metadata enrichment for kube.* logs
     [FILTER]
         Name                kubernetes
-        Match               kube.*
+        Match               kube.var.log.containers.*
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -108,9 +112,10 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
+    # Kubernetes metadata enrichment for car.* logs
     [FILTER]
         Name                kubernetes
-        Match               car.app,car.data
+        Match               car.*
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -118,9 +123,10 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
+    # Output to Elasticsearch
     [OUTPUT]
         Name               es
-        Match              *
+        Match              kube.var.log.containers.*,car.*
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
         Logstash_Format    On
@@ -136,3 +142,4 @@ data:
         Time_Format  %Y-%m-%dT%H:%M:%S.%L%z
         Time_Keep    On
         Decode_Field_As   escaped    log  do_next
+        Decode_Field_As   json       log
