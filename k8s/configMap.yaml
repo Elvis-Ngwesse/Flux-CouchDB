@@ -101,17 +101,18 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-    # Enrich Kubernetes logs
+    # Kubernetes enrichment for container logs
     [FILTER]
         Name                kubernetes
         Match               kube.var.log.containers.*
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
         Keep_Log            Off
 
-    # Enrich app logs (static tag, no prefix)
+    # Kubernetes enrichment for app logs (no Kube_Tag_Prefix)
     [FILTER]
         Name                kubernetes
         Match               car_app
@@ -121,7 +122,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Enrich data logs (static tag, no prefix)
+    # Kubernetes enrichment for data logs (no Kube_Tag_Prefix)
     [FILTER]
         Name                kubernetes
         Match               car_data
@@ -131,7 +132,7 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Output all logs to Elasticsearch
+    # Output to Elasticsearch
     [OUTPUT]
         Name               es
         Match              kube.var.log.containers.*,car_*
