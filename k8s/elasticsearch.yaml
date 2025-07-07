@@ -9,7 +9,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/prune: "true"
     kustomize.toolkit.fluxcd.io/disableNameSuffixHash: "true"
 spec:
-  replicas: 1
+  replicas: 2
   serviceName: elasticsearch
   selector:
     matchLabels:
@@ -46,11 +46,11 @@ spec:
               value: "-Xms1g -Xmx1g"   # Increased JVM heap to 1GB
           resources:
             requests:
-              cpu: "500"
+              cpu: "0.5"
               memory: "1Gi"
             limits:
               memory: "1Gi"
-              cpu: "2Gi"
+              cpu: "2"
           volumeMounts:
             - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
