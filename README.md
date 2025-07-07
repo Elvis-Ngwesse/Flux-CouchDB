@@ -104,7 +104,7 @@ minikube service car-dashboard -n car-app
 
 minikube service elasticsearch -n car-logs 
 curl http://127.0.0.1:port/_cluster/health?pretty
-curl http://127.0.0.1:port/_cat/indices?v
+curl http://127.0.0.1:65404/_cat/indices?v
 
 
 kubectl delete namespace car-app

@@ -120,7 +120,7 @@ data:
 
     [OUTPUT]
         Name               es
-        Match              car.*,kube.*
+        Match              *
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
         Logstash_Format    On
