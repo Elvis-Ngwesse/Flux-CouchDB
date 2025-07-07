@@ -19,9 +19,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1001
-        fsGroup: 1001
+        runAsUser: 0
       containers:
         - name: data-generator
           image: dockerelvis/data-generator:9644b5e
@@ -90,9 +88,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1001
-        fsGroup: 1001
+        runAsUser: 0
       containers:
         - name: dash-app
           image: dockerelvis/car-dashboard:9644b5e
