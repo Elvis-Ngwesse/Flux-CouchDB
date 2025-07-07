@@ -99,7 +99,8 @@ minikube service kibana -n car-logs
 
 
 minikube service elasticsearch -n car-logs 
-curl http://127.0.0.1:60059/_cat/indices?v
+curl http://127.0.0.1:port/_cluster/health?pretty
+curl http://127.0.0.1:port/_cat/indices?v
 
 
 kubectl delete namespace car-app

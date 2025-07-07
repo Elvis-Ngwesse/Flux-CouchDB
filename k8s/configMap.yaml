@@ -39,6 +39,20 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: kibana-config-template
+  namespace: car-logs
+data:
+  kibana.yml.template: |
+    server.host: "0.0.0.0"
+    elasticsearch.hosts: ["http://elasticsearch.car-logs.svc.cluster.local:9200"]
+
+    xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
+    xpack.encryptedSavedObjects.encryptionKey: "${ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
+    xpack.reporting.encryptionKey: "${REPORTING_ENCRYPTIONKEY}"
+--- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: fluent-bit-config
   namespace: car-app
   labels:
@@ -92,6 +106,7 @@ data:
         Port               9200
         Logstash_Format    On
         Logstash_Prefix    car
+        Type               _doc
         Retry_Limit        False
 
   parsers.conf: |
@@ -103,19 +118,3 @@ data:
         Time_Keep    On
         Decode_Field_As   escaped    log  do_next
         Decode_Field_As   json       log
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kibana-config-template
-  namespace: car-logs
-data:
-  kibana.yml.template: |
-    server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://elasticsearch.car-logs.svc.cluster.local:9200"]
-
-    xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
-    xpack.encryptedSavedObjects.encryptionKey: "${ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
-    xpack.reporting.encryptionKey: "${REPORTING_ENCRYPTIONKEY}"
---- 
