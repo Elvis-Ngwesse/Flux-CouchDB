@@ -1,30 +1,30 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: cadvisor-app
+  name: cadvisor
   namespace: car-logs
   labels:
-    app: cadvisor-app
+    app: cadvisor
 spec:
   selector:
     matchLabels:
-      app: cadvisor-app
+      app: cadvisor
   template:
     metadata:
       labels:
-        app: cadvisor-app
+        app: cadvisor
     spec:
       nodeSelector:
         node-role.kubernetes.io/worker: ""
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
-      - name: cadvisor-app
+      - name: cadvisor
         image: gcr.io/cadvisor/cadvisor:latest
         args:
           - --port=8080
           - --storage_driver=influxdb
-          - --storage_driver_host=influxdb.car-logs.svc.cluster.local:8086
+          - --storage_driver_host=http://localhost:8086
           - --storage_driver_db=car_metrics
         ports:
         - containerPort: 8080
@@ -71,14 +71,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cadvisor-app
+  name: cadvisor
   namespace: car-logs
   labels:
-    app: cadvisor-app
+    app: cadvisor
 spec:
   type: NodePort
   selector:
-    app: cadvisor-app
+    app: cadvisor
   ports:
     - protocol: TCP
       port: 8080
