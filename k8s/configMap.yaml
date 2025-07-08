@@ -92,7 +92,6 @@ data:
         Name    modify
         Match   *
         Rename  log.logger   log_logger
-        Remove  log
 
     # Output to Elasticsearch
     [OUTPUT]
