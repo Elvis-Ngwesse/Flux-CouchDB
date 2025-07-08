@@ -75,13 +75,73 @@ kubectl label node minikube-m03 node-role.kubernetes.io/worker=""
 minikube stop minikube delete --all
 minikube delete --all --purge
 
-🌐 
+
+🛠️ What happens under the hood:
+| Option                      | Meaning                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `flux bootstrap github`     | Initializes GitOps with GitHub                                                                             |
+| `--owner=Elvis-Ngwesse`     | GitHub username or org                                                                                     |
+| `--repository=Flux-CouchDB` | GitHub repo name to push Flux config into                                                                  |
+| `--branch=main`             | Branch to use (must exist)                                                                                 |
+| `--path=./k8s`              | Local path in the repo where your Kubernetes YAMLs live (e.g., `kustomization.yaml`, `deployments/`, etc.) |
+
+
+🚀 1. Deploy (Bootstrap & Add Resources)
+
+export GITHUB_TOKEN=ghp_xxx    # your personal GitHub token
 
 flux bootstrap github \
   --owner=Elvis-Ngwesse \
   --repository=Flux-CouchDB \
   --branch=main \
   --path=./k8s
+
+📥 Create a Git source (GitRepository)
+
+flux create source git flux-system \
+  --url=https://github.com/Elvis-Ngwesse/Flux-CouchDB \
+  --branch=main \
+  --interval=30s \
+  --export > ./k8s/flux-system/gitrepo.yaml
+
+🔀 Create a deployment (Kustomization)
+
+flux create kustomization couchdb \
+  --target-namespace=car-logs \
+  --source=flux-system \
+  --path="./k8s/couchdb" \
+  --prune=true \
+  --interval=1m \
+  --export > ./k8s/couchdb/kustomization.yaml
+
+Then commit & push to GitHub:
+git add .
+git commit -m "Add CouchDB deployment"
+git push
+
+🔄 Force a manual reconciliation (optional)
+flux reconcile kustomization couchdb --with-source
+
+
+🗑️ 3. Delete Resources
+flux suspend kustomization couchdb
+flux delete kustomization couchdb
+
+✅ Option B: Delete the YAML folder and commit
+rm -rf k8s/couchdb
+git add .
+git commit -m "Remove CouchDB"
+git push
+
+
+🔍 See all sources and kustomizations
+flux get sources git
+flux get kustomizations
+
+🧪 Validate your YAML before pushing
+flux diff kustomization couchdb --path=./k8s/couchdb
+
+
 
 
 flux get kustomizations
