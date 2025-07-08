@@ -22,7 +22,7 @@ spec:
         args:
           - --port=8080
           - --storage_driver=influxdb
-          - --storage_driver_host=http://influxdb.car-logs.svc.cluster.local:8086
+          - --storage_driver_host=influxdb.car-logs.svc.cluster.local:8086
           - --storage_driver_db=car_metrics
         ports:
         - containerPort: 8080
