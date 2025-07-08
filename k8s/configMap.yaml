@@ -87,7 +87,7 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-     # 🔧 Flatten nested log.logger and remove log object
+    # 🔧 Flatten nested log.logger and remove log object
     [FILTER]
         Name    modify
         Match   *
