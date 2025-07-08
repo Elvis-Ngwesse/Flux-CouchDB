@@ -1,60 +1,71 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: kibana
+  name: cadvisor
   namespace: car-logs
+  labels:
+    app: cadvisor
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: kibana
+      app: cadvisor
   template:
     metadata:
       labels:
-        app: kibana
+        app: cadvisor
     spec:
-      terminationGracePeriodSeconds: 30
-      volumes:
-        - name: kibana-config
-          configMap:
-            name: kibana-config
-            items:
-              - key: kibana.yml
-                path: kibana.yml
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
-        - name: kibana
-          image: docker.elastic.co/kibana/kibana:9.0.2
-          ports:
-            - containerPort: 5601
-          volumeMounts:
-            - name: kibana-config
-              mountPath: /usr/share/kibana/config/kibana.yml
-              subPath: kibana.yml
-          resources:
-            requests:
-              cpu: "0.5"
-              memory: "512Mi"
-            limits:
-              cpu: "1"
-              memory: "1Gi"
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 5601
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 5601
-            initialDelaySeconds: 120
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 5
-
---- 
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:latest
+        args:
+          - --port=8080
+          - --storage_driver=influxdb
+          - --storage_driver_host=http://influxdb.car-logs.svc.cluster.local:8086
+          - --storage_driver_db=car_metrics
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "150Mi"
+          limits:
+            cpu: "250m"
+            memory: "300Mi"
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: var-run
+          mountPath: /var/run
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: docker
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: dev-disk
+          mountPath: /dev/disk
+          readOnly: true
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker
+        hostPath:
+          path: /var/lib/docker
+      - name: dev-disk
+        hostPath:
+          path: /dev/disk
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -63,12 +74,11 @@ metadata:
   labels:
     app: cadvisor
 spec:
-  type: NodePort                
+  type: NodePort
   selector:
     app: cadvisor
   ports:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 31080         
-
+      nodePort: 31080
