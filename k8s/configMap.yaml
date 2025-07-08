@@ -97,11 +97,11 @@ data:
     # Output to Elasticsearch
     [OUTPUT]
         Name               es
-        Match              Match kube.var.log.containers.*
+        Match              kube.var.log.containers.*
         Host               elasticsearch.car-logs.svc.cluster.local
         Port               9200
         Logstash_Format    On
-        Logstash_Prefix    car
+        Logstash_Prefix    car-kube
         Retry_Limit        False
         Suppress_Type_Name On
     
