@@ -70,15 +70,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cadvisor
+  name: cadvisor1
   namespace: car-logs
   labels:
     app: cadvisor
 spec:
+  type: NodePort                      # Change to NodePort
   selector:
     app: cadvisor
   ports:
     - protocol: TCP
-      port: 8080
-      targetPort: 8080
-  clusterIP: None  # Headless service
+      port: 8080                     # Service port
+      targetPort: 8080               # Container port
+      nodePort: 31080                # NodePort (choose any free port in 30000-32767 range)
+
