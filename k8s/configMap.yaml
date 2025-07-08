@@ -104,12 +104,6 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-    # Add log file path as a field
-    [FILTER]
-        Name          record_modifier
-        Match         *
-        Record        log_filepath ${path}
-
     # Output to Elasticsearch
     [OUTPUT]
         Name               es
