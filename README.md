@@ -87,22 +87,17 @@ minikube delete --all --purge
 
 
 🚀 1. Deploy (Bootstrap & Add Resources)
-
 export GITHUB_TOKEN=ghp_xxx    # your personal GitHub token
-
 flux bootstrap github \
   --owner=Elvis-Ngwesse \
   --repository=Flux-CouchDB \
   --branch=main \
   --path=./k8s
 
-📥 Create a Git source (GitRepository)
+⬇️⬆️ 📥  git pull
+Do a git pull since flux-system folder is created in remote
 
-flux create source git flux-system \
-  --url=https://github.com/Elvis-Ngwesse/Flux-CouchDB \
-  --branch=main \
-  --interval=30s \
-  --export > ./k8s/flux-system/gitrepo.yaml
+ 
 
 🔀 Create a deployment (Kustomization)
 
