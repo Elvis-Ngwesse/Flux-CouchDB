@@ -91,8 +91,7 @@ flux bootstrap github \
   --owner=Elvis-Ngwesse \
   --repository=Flux-CouchDB \
   --branch=main \
-  --path=./empty \
-  --personal
+  --path=./k8s
 
 
 ⬇️⬆️ 📥  git pull
@@ -102,13 +101,13 @@ Do a git pull since flux-system folder is created in remote
 
 🔀 Create a deployment (Kustomization)
 
-flux create kustomization couchdb \
-  --target-namespace=car-logs \
+flux create kustomization my-apps \
+  --target-namespace=car-app \
   --source=flux-system \
-  --path="./k8s/couchdb" \
+  --path="./k8s" \
   --prune=true \
   --interval=1m \
-  --export > ./k8s/couchdb/kustomization.yaml
+  --export > ./k8s/kustomization.yaml
 
 Then commit & push to GitHub:
 git add .
