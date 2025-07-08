@@ -126,3 +126,9 @@ data:
     xpack.reporting.encryptionKey: "yet-another-32-byte-key-for-dev!!"
     xpack.reporting.kibanaServer.hostname: "localhost"
     xpack.screenshotting.browser.chromium.disableSandbox: true
+    xpack.fleet.enabled: false
+    xpack.securitySolution.enabled: false
+    xpack.alerting.enabled: false
+    xpack.reporting.enabled: false
+    xpack.ml.enabled: false
+    xpack.uptime.enabled: false

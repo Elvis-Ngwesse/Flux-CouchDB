@@ -91,61 +91,40 @@ flux bootstrap github \
   --owner=Elvis-Ngwesse \
   --repository=Flux-CouchDB \
   --branch=main \
-  --path=./k8s
+  --path=./k8s \
+  --personal
+
 
 
 ⬇️⬆️ 📥  git pull
 Do a git pull since flux-system folder is created in remote
 
- 
 
-🔀 Create a deployment (Kustomization)
 
-flux create kustomization my-apps \
-  --target-namespace=car-app \
-  --source=flux-system \
-  --path="./k8s" \
-  --prune=true \
-  --interval=1m \
-  --export > ./k8s/kustomization.yaml
-
-Then commit & push to GitHub:
-git add .
-git commit -m "Add CouchDB deployment"
-git push
-
-🔄 Force a manual reconciliation (optional)
+🔄 Force a manual reconciliation
 flux reconcile kustomization couchdb --with-source
-
-
-🗑️ 3. Delete Resources
-flux suspend kustomization couchdb
-flux delete kustomization couchdb
-
-✅ Option B: Delete the YAML folder and commit
-rm -rf k8s/couchdb
-git add .
-git commit -m "Remove CouchDB"
-git push
-
-
-🔍 See all sources and kustomizations
+flux get all
 flux get sources git
 flux get kustomizations
-
-🧪 Validate your YAML before pushing
-flux diff kustomization couchdb --path=./k8s/couchdb
-
-
-
-
-flux get kustomizations
-
 kubectl get pods -n flux-system
 flux check
 kubectl -n flux-system delete pods --all
 kubectl -n flux-system get pods                       
 kubectl -n flux-system logs deployment/kustomize-controller -f
+kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o wide
+
+
+🗑️ 3. Delete Resources
+      Delete k8s/flux-system
+
+
+
+
+
+
+flux get kustomizations
+
+
 flux reconcile kustomization flux-system --with-source
 
 
