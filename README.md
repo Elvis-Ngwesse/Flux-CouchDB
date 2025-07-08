@@ -61,13 +61,13 @@ flux --version
 
 
 minikube start --nodes 3
+minikube start --nodes 3 --cpus=2 --memory=4g
 kubectl get nodes
 minikube ssh --node=minikube
 minikube ssh --node=minikube-m02
 minikube ssh --node=minikube-m03
 
 kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
-
 kubectl label node minikube-m02 node-role.kubernetes.io/worker=""
 kubectl label node minikube-m03 node-role.kubernetes.io/worker=""
 

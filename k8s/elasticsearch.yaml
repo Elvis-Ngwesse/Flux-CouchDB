@@ -47,10 +47,10 @@ spec:
           resources:
             requests:
               cpu: "0.5"
-              memory: "1Gi"
+              memory: "512Mi"
             limits:
-              memory: "2Gi"
-              cpu: "3"
+              cpu: "1"
+              memory: "1Gi"
           volumeMounts:
             - name: elasticsearch-pvc
               mountPath: /usr/share/elasticsearch/data
