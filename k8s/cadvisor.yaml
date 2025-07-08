@@ -14,6 +14,8 @@ spec:
       labels:
         app: cadvisor-app
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
@@ -81,4 +83,3 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 31080
