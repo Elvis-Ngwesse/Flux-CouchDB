@@ -120,7 +120,7 @@ data:
     server.name: kibana
     server.host: "0.0.0.0"
     server.port: 5601
-    elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+    elasticsearch.hosts: [ "http://elasticsearch.car-logs.svc.cluster.local:9200" ]
     xpack.security.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
     xpack.encryptedSavedObjects.encryptionKey: "another-32-byte-key-for-dev-env!"
     xpack.reporting.encryptionKey: "yet-another-32-byte-key-for-dev!!"

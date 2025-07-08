@@ -122,13 +122,6 @@ kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o wide
 
 
 
-flux get kustomizations
-
-
-flux reconcile kustomization flux-system --with-source
-
-
-
 minikube service couchdb-nodeport -n car-app
 http://http://127.0.0.1:port/_utils/
 
@@ -136,9 +129,10 @@ minikube service kibana -n car-logs
 
 minikube service car-dashboard -n car-app 
 
+
+Verify indices exist with:
 minikube service elasticsearch -n car-logs 
-curl http://127.0.0.1:58961/_cluster/health?pretty. # Check shard allocation and cluster health:
-curl http://127.0.0.1:61840/_cat/indices?v
+curl http://127.0.0.1:54306/_cat/indices?v
 
 
 
