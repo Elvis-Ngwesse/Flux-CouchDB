@@ -8,8 +8,6 @@ import logging
 import random
 import requests
 import re
-import psutil
-import threading
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,8 +23,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler()  # Also logs to stdout for Kubernetes logging
+        ]
 )
 logger = logging.getLogger()
 
@@ -66,6 +64,7 @@ def ensure_influxdb_db_exists():
 
 def format_field_value(value):
     if isinstance(value, str):
+        # Escape backslash and double quotes for InfluxDB
         escaped = value.replace('\\', '\\\\').replace('"', '\\"')
         return f'"{escaped}"'
     elif isinstance(value, bool):
@@ -77,10 +76,23 @@ def format_field_value(value):
 
 
 def sanitize_tag_value(value):
+    # Remove spaces, commas, equal signs (InfluxDB tags cannot have these)
     return re.sub(r'[ ,=]', '_', str(value))
 
 
-def push_metric(measurement, fields, tags=None, timestamp=None, max_retries=5, base_delay=1):
+def push_metric(measurement, fields, tags=None, timestamp=None,
+                max_retries=5, base_delay=1):
+    """
+    Push a metric line to InfluxDB with retries and error handling.
+
+    Args:
+      measurement (str): Measurement name.
+      fields (dict): Field key-values.
+      tags (dict): Tag key-values.
+      timestamp (int or str): Optional timestamp in ns.
+      max_retries (int): Max retry attempts.
+      base_delay (int or float): Initial delay in seconds for retry backoff.
+    """
     line = measurement
     if tags:
         tag_str = ",".join(f"{k}={sanitize_tag_value(v)}" for k, v in tags.items())
@@ -93,53 +105,27 @@ def push_metric(measurement, fields, tags=None, timestamp=None, max_retries=5, b
     url = f"{INFLUXDB_URL}/write?db={INFLUXDB_DB}&precision=ns"
     headers = {"Content-Type": "text/plain; charset=utf-8"}
 
-    for attempt in range(max_retries + 1):
+    attempt = 0
+    while attempt <= max_retries:
         try:
             resp = requests.post(url, headers=headers, data=line, timeout=5)
             if resp.status_code == 204:
-                logger.debug(f"Metric pushed successfully: {line}")
+                logger.debug(f"Metric pushed successfully on attempt {attempt + 1}: {line}")
                 return True
             else:
-                logger.warning(f"Attempt {attempt + 1} - InfluxDB push failed: {resp.status_code} {resp.text}")
+                logger.warning(f"Attempt {attempt + 1} - InfluxDB push failed with status {resp.status_code}: {resp.text}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Attempt {attempt + 1} - Exception pushing metric: {e}")
 
-        if attempt < max_retries:
-            delay = base_delay * (2 ** attempt)
-            logger.info(f"Retrying in {delay:.1f}s...")
+        attempt += 1
+        if attempt <= max_retries:
+            delay = base_delay * (2 ** (attempt - 1))  # Exponential backoff
+            logger.info(f"Retrying in {delay:.1f} seconds...")
             time.sleep(delay)
         else:
-            logger.error(f"Max retries reached. Failed to push: {line}")
+            logger.error(f"Max retries ({max_retries}) reached. Failed to push metric: {line}")
+
     return False
-
-
-def push_resource_metrics():
-    try:
-        process = psutil.Process(os.getpid())
-        cpu = process.cpu_percent(interval=1)
-        mem = process.memory_info().rss / (1024 * 1024)  # in MB
-        push_metric(
-            measurement="resource_usage",
-            fields={
-                "cpu_percent": cpu,
-                "memory_mb": mem
-            },
-            tags={
-                "app": "car-data-generator"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error pushing resource metrics: {e}")
-
-
-def start_metrics_loop():
-    def loop():
-        while True:
-            push_resource_metrics()
-            time.sleep(60)
-
-    t = threading.Thread(target=loop, daemon=True)
-    t.start()
 
 
 def connect_couchdb():
@@ -185,7 +171,7 @@ def generate_and_insert_cars(db, num_cars=200):
 
     logger.info(f"✅ Inserted {inserted}/{num_cars} records")
 
-    # Push summary to InfluxDB
+    # Push metrics to InfluxDB
     avg_price = sum(prices) / inserted if inserted else 0
     push_metric(
         measurement="car_data_generator",
@@ -200,7 +186,6 @@ def generate_and_insert_cars(db, num_cars=200):
 def main():
     logger.info("🚀 Starting car data generator...")
     ensure_influxdb_db_exists()
-    start_metrics_loop()
     while True:
         db = connect_couchdb()
         generate_and_insert_cars(db, 200)
