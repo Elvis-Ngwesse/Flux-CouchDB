@@ -137,6 +137,9 @@ curl http://127.0.0.1:54306/_cat/indices?v
 
 minikube service chronograf -n car-logs
 
+minikube service cadvisor -n car-logs
+
+
 
 
 
