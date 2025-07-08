@@ -86,12 +86,6 @@ data:
         Parser            docker
         Refresh_Interval  5
         Read_From_Head    False
-
-    # 🔧 Flatten nested log.logger and remove log object
-    [FILTER]
-        Name    modify
-        Match   *
-        Rename  log.logger   log_logger
     
     # Add Kubernetes metadata: pod_name, namespace, container_name, etc.
     [FILTER]
