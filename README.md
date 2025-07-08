@@ -60,7 +60,6 @@ brew install fluxcd/tap/flux
 flux --version
 
 
-minikube start --nodes 3
 minikube start --nodes 3 --cpus=2 --memory=4g
 kubectl get nodes
 minikube ssh --node=minikube
@@ -92,7 +91,9 @@ flux bootstrap github \
   --owner=Elvis-Ngwesse \
   --repository=Flux-CouchDB \
   --branch=main \
-  --path=./k8s
+  --path=./empty \
+  --personal
+
 
 ⬇️⬆️ 📥  git pull
 Do a git pull since flux-system folder is created in remote
