@@ -11,3 +11,4 @@ resources:
   - fluent-bit.yaml
   - elasticsearch.yaml
   - kibana.yaml
+  - chronograf.yaml

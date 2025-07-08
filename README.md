@@ -119,7 +119,8 @@ kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o wide
 
 
 
-
+kubectl delete namespace car-app
+kubectl delete namespace car-logs
 
 
 minikube service couchdb-nodeport -n car-app
@@ -136,8 +137,7 @@ curl http://127.0.0.1:54306/_cat/indices?v
 
 
 
-kubectl delete namespace car-app
-kubectl delete namespace car-logs
+
 
 
 

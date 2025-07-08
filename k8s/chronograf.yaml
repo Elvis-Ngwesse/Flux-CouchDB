@@ -52,14 +52,3 @@ spec:
       targetPort: 8888
       protocol: TCP
 ---
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: chronograf
-  namespace: car-logs
-spec:
-  to:
-    kind: Service
-    name: chronograf
-  port:
-    targetPort: 80
