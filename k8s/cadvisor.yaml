@@ -26,6 +26,9 @@ spec:
       containers:
         - name: cadvisor
           image: gcr.io/cadvisor/cadvisor:v0.47.2
+          args:
+            - --logtostderr
+            - --v=1
           ports:
             - containerPort: 8080
               name: http
