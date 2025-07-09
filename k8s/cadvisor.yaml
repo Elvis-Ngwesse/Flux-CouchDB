@@ -1,9 +1,10 @@
---- 
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: cadvisor
   namespace: car-logs
+  labels:
+    app: cadvisor
 spec:
   selector:
     matchLabels:
@@ -13,9 +14,15 @@ spec:
       labels:
         app: cadvisor
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       terminationGracePeriodSeconds: 30
       nodeSelector:
         node-role.kubernetes.io/worker: ""
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
       containers:
         - name: cadvisor
           image: gcr.io/cadvisor/cadvisor:v0.47.2
@@ -35,6 +42,12 @@ spec:
             - name: docker
               mountPath: /var/lib/docker
               readOnly: true
+            - name: machine-id
+              mountPath: /etc/machine-id
+              readOnly: true
+            - name: kmsg
+              mountPath: /dev/kmsg
+              readOnly: true
       volumes:
         - name: rootfs
           hostPath:
@@ -48,3 +61,11 @@ spec:
         - name: docker
           hostPath:
             path: /var/lib/docker
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
+            type: File
+        - name: kmsg
+          hostPath:
+            path: /dev/kmsg
+            type: File
