@@ -86,6 +86,9 @@ minikube delete --all --purge
 
 
 🚀 1. Deploy (Bootstrap & Add Resources)
+Go to GitHub token settings and create a token with the necessary scopes:
+
+"https://github.com/settings/tokens"
 export GITHUB_TOKEN=ghp_xxx    # your personal GitHub token
 flux bootstrap github \
   --owner=Elvis-Ngwesse \
