@@ -71,7 +71,6 @@ spec:
         - name: kmsg
           hostPath:
             path: /dev/kmsg
-            type: File
 --- 
 apiVersion: v1
 kind: Service
@@ -88,4 +87,3 @@ spec:
     - name: http
       port: 8080
       targetPort: 8080
-      nodePort: 30080
