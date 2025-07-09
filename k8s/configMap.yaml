@@ -164,7 +164,7 @@ data:
   rename_log.lua: |
     function rename(tag, timestamp, record)
       if record["log"] ~= nil then
-        record["message"] = record["log"]
+        record["log_message"] = record["log"]
         record["log"] = nil
       end
       return 1, timestamp, record
