@@ -16,20 +16,25 @@ from flask import Flask
 # Load environment variables
 load_dotenv()
 
-# Logging setup
+# Logging setup (set level to DEBUG for max verbosity)
 log_dir = "/app/logs"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "app.log")
 
+# Clear existing handlers first to avoid duplicates
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG,  # <-- Set to DEBUG for detailed logs
+    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file),
+        logging.FileHandler(log_file, mode='a', encoding='utf-8'),
         logging.StreamHandler()
-    ]
+    ],
+    force=True  # Make sure this config is applied even if logging was configured before
 )
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 # CouchDB config
 user = os.getenv("COUCHDB_USER", "admin")
@@ -43,7 +48,6 @@ db_name = "car_prices"
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://influxdb:8086")
 INFLUXDB_DB = os.getenv("INFLUXDB_DB", "car_metrics")
 
-# Ensure InfluxDB DB exists
 def ensure_influxdb_db_exists():
     try:
         url = f"{INFLUXDB_URL}/query"
@@ -55,7 +59,6 @@ def ensure_influxdb_db_exists():
     except Exception as e:
         logger.error(f"❌ InfluxDB check failed: {e}")
 
-# InfluxDB helpers
 def format_field_value(value):
     if isinstance(value, str):
         escaped = value.replace('\\', '\\\\').replace('"', '\\"')
@@ -105,43 +108,44 @@ for attempt in range(10):
         logger.info(f"🔌 Connecting to CouchDB (attempt {attempt+1})")
         couch = couchdb.Server(couchdb_url)
         db = couch[db_name] if db_name in couch else couch.create(db_name)
+        logger.info("✅ Connected to CouchDB successfully.")
         break
     except Exception as e:
         logger.warning(f"⚠️ CouchDB connection failed: {e}")
         time.sleep(3)
 else:
+    logger.critical("❌ Could not connect to CouchDB. Exiting.")
     raise SystemExit("❌ Could not connect to CouchDB")
 
-# Ensure InfluxDB DB
 ensure_influxdb_db_exists()
 
-# Sample car banner images
 CAR_IMAGES = [
     "https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg",
     "https://cdn.pixabay.com/photo/2015/01/19/13/51/car-604019_1280.jpg",
     "https://cdn.pixabay.com/photo/2012/05/29/00/43/auto-49277_1280.jpg",
 ]
 
-# Flask for health check
 flask_server = Flask(__name__)
 @flask_server.route("/health")
 def health():
+    logger.debug("Health check endpoint hit")
     return "OK", 200
 
-# Dash App
 app = dash.Dash(__name__, server=flask_server)
 server = app.server
 
 def get_countries():
+    logger.debug("Fetching list of countries from CouchDB...")
     countries = set()
     try:
         for doc_id in db:
-            countries.add(db[doc_id].get('country', 'Unknown'))
+            country = db[doc_id].get('country', 'Unknown')
+            countries.add(country)
+        logger.debug(f"Found countries: {countries}")
     except Exception as e:
         logger.error(f"❌ Error fetching countries: {e}")
     return sorted(list(countries))
 
-# Get list of countries once to build dropdown options and set initial value
 countries_list = get_countries()
 
 app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children=[
@@ -171,16 +175,20 @@ app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children
      Input('interval', 'n_intervals')]
 )
 def update_graphs(country, _):
+    logger.debug(f"update_graphs called with country={country}")
     if not country:
+        logger.info("No country selected yet")
         fig = {"data": [], "layout": {"title": "Select a country"}}
         return fig, fig, fig
 
     try:
         cars = [db[doc] for doc in db if db[doc].get('country') == country]
         if not cars:
+            logger.info(f"No car data for country: {country}")
             fig = {"data": [], "layout": {"title": "No data"}}
             return fig, fig, fig
         df = pd.DataFrame(cars)
+        logger.debug(f"Fetched {len(df)} records for country {country}")
     except Exception as e:
         logger.error(f"❌ Failed to fetch car data: {e}")
         fig = {"data": [], "layout": {"title": "Error"}}
@@ -205,6 +213,7 @@ def update_graphs(country, _):
         "layout": {"title": f"Car Type Distribution in {country}"}
     }
 
+    logger.debug(f"Pushing metrics for country {country}: avg_price={df['price'].mean()}, count={len(df)}")
     push_metric(
         measurement="used_car_dashboard",
         fields={
@@ -223,6 +232,7 @@ def update_graphs(country, _):
     Input('image-interval', 'n_intervals')
 )
 def update_image(_):
+    logger.debug("Updating car image")
     return random.choice(CAR_IMAGES)
 
 if __name__ == "__main__":

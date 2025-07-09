@@ -99,7 +99,7 @@ spec:
         runAsUser: 0
       containers:
         - name: dash-app
-          image: dockerelvis/car-dashboard:92c23ac
+          image: dockerelvis/car-dashboard:b33fbdc
           imagePullPolicy: Always
           ports:
             - containerPort: 8050
