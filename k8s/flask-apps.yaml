@@ -20,6 +20,16 @@ spec:
       securityContext:
         runAsUser: 0
       containers:
+        - name: telegraf-data-generator
+          image: telegraf:1.30
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9273
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+            - name: telegraf-config
+              mountPath: /etc/telegraf/
         - name: data-generator
           image: dockerelvis/data-generator:dd44fa3
           imagePullPolicy: Always
@@ -75,6 +85,9 @@ spec:
         - name: logs
           persistentVolumeClaim:
             claimName: car-data-pvc
+        - name: telegraf-config
+          configMap:
+            name: telegraf-config
 
 ---
 apiVersion: apps/v1
@@ -98,6 +111,16 @@ spec:
       securityContext:
         runAsUser: 0
       containers:
+        - name: telegraf-dashboard
+          image: telegraf:1.30
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9273
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+            - name: telegraf-config
+              mountPath: /etc/telegraf/
         - name: dash-app
           image: dockerelvis/car-dashboard:b33fbdc
           imagePullPolicy: Always
@@ -153,6 +176,9 @@ spec:
         - name: logs
           persistentVolumeClaim:
             claimName: car-app-pvc
+        - name: telegraf-config
+          configMap:
+            name: telegraf-config
 
 ---
 apiVersion: v1
@@ -167,4 +193,18 @@ spec:
     - name: http
       port: 80
       targetPort: 8050
+      protocol: TCP
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: car-data-generator
+  namespace: car-app
+spec:
+  selector:
+    app: car-data-generator
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8060
       protocol: TCP

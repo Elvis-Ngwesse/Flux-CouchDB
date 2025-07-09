@@ -177,3 +177,53 @@ data:
       end
       return 1, timestamp, record
     end
+--- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-config
+  namespace: car-app
+data:
+  telegraf.conf: |
+    [agent]
+      interval = "10s"
+      round_interval = true
+      flush_interval = "10s"
+      hostname = ""
+      omit_hostname = true
+
+    [[inputs.tail]]
+      files = ["/app/logs/*.log"]
+      from_beginning = true
+      name_override = "app_logs"
+      data_format = "grok"
+      grok_patterns = ['%{COMMON_LOG_FORMAT}']
+      tag_keys = ["status", "verb", "request"]
+
+    [[outputs.prometheus_client]]
+      listen = ":9273"
+      path = "/metrics"
+--- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-central-config
+  namespace: car-logs
+data:
+  telegraf.conf: |
+    [agent]
+      interval = "10s"
+      flush_interval = "10s"
+      omit_hostname = true
+
+    [[inputs.prometheus]]
+      urls = [
+        "http://car-data-generator.car-app.svc.cluster.local:9273/metrics",
+        "http://car-dashboard.car-app.svc.cluster.local:9273/metrics"
+      ]
+      name_override = "sidecar_metrics"
+      response_timeout = "5s"
+
+    [[outputs.influxdb]]
+      urls = ["http://influxdb.car-logs.svc.cluster.local:8086"]
+      database = "sidecar_metrics"

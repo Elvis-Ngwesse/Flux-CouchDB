@@ -7,7 +7,7 @@ resources:
   - volume.yaml
   - couchdb.yaml
   - influxdb.yaml
-  - deployment.yaml
+  - flask-apps.yaml
   - fluent-bit.yaml
   - elasticsearch.yaml
   - kibana.yaml

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf-central
+  namespace: car-logs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegraf-central
+  template:
+    metadata:
+      labels:
+        app: telegraf-central
+    spec:
+      containers:
+        - name: telegraf
+          image: telegraf:1.30
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /etc/telegraf/
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: telegraf-central-config
