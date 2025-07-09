@@ -194,6 +194,10 @@ spec:
       port: 80
       targetPort: 8050
       protocol: TCP
+    - name: metrics
+      port: 9273
+      targetPort: 9273
+      protocol: TCP
 --- 
 apiVersion: v1
 kind: Service
@@ -207,4 +211,8 @@ spec:
     - name: http
       port: 80
       targetPort: 8060
+      protocol: TCP
+    - name: metrics
+      port: 9273
+      targetPort: 9273
       protocol: TCP
