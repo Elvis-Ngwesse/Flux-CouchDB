@@ -36,6 +36,30 @@ data:
     [log]
     level = info
 --- 
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: car-logs
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: "true"
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0.0.0.0"
+    server.port: 5601
+    elasticsearch.hosts: [ "http://elasticsearch.car-logs.svc.cluster.local:9200" ]
+    xpack.security.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
+    xpack.encryptedSavedObjects.encryptionKey: "another-32-byte-key-for-dev-env!"
+    xpack.reporting.encryptionKey: "yet-another-32-byte-key-for-dev!!"
+    xpack.reporting.kibanaServer.hostname: "localhost"
+    xpack.screenshotting.browser.chromium.disableSandbox: true
+    # Optional: Disable Fleet and other UI features
+    xpack.fleet.enabled: false
+    xpack.securitySolution.enabled: false
+    xpack.uptime.enabled: false
+--- 
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -96,7 +120,14 @@ data:
         Refresh_Interval  5
         Read_From_Head    False
 
-    # Output to Elasticsearch
+    # Rename `log` → `message` to avoid ES mapping conflicts
+    [FILTER]
+        Name   lua
+        Match  *
+        script rename_log.lua
+        call   rename
+
+    # Output to Elasticsearch for pod logs
     [OUTPUT]
         Name               es
         Match              kube.var.log.containers.*
@@ -104,11 +135,11 @@ data:
         Port               9200
         Logstash_Format    On
         Logstash_Prefix    kubernetes-logs
+        Replace_Dots       On
         Retry_Limit        False
         Suppress_Type_Name On
-        Message_Key        message
-        Replace_Dots       On
-    
+
+    # Output to Elasticsearch for app & generator logs
     [OUTPUT]
         Name               es
         Match              car_*
@@ -116,10 +147,9 @@ data:
         Port               9200
         Logstash_Format    On
         Logstash_Prefix    file-logs
+        Replace_Dots       On
         Retry_Limit        False
         Suppress_Type_Name On
-        Message_Key        message
-        Replace_Dots       On
 
   parsers.conf: |
     [PARSER]
@@ -130,27 +160,12 @@ data:
         Time_Keep    On
         Decode_Field_As   escaped    log  do_next
         Decode_Field_As   json       log
---- 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kibana-config
-  namespace: car-logs
-  annotations:
-    kustomize.toolkit.fluxcd.io/prune: "true"
-data:
-  kibana.yml: |
-    server.name: kibana
-    server.host: "0.0.0.0"
-    server.port: 5601
-    elasticsearch.hosts: [ "http://elasticsearch.car-logs.svc.cluster.local:9200" ]
-    xpack.security.encryptionKey: "a-32-byte-long-key-for-dev-only!!"
-    xpack.encryptedSavedObjects.encryptionKey: "another-32-byte-key-for-dev-env!"
-    xpack.reporting.encryptionKey: "yet-another-32-byte-key-for-dev!!"
-    xpack.reporting.kibanaServer.hostname: "localhost"
-    xpack.screenshotting.browser.chromium.disableSandbox: true
-    # Optional: Disable Fleet and other UI features
-    xpack.fleet.enabled: false
-    xpack.securitySolution.enabled: false
-    xpack.uptime.enabled: false
---- 
+
+  rename_log.lua: |
+    function rename(tag, timestamp, record)
+      if record["log"] ~= nil then
+        record["message"] = record["log"]
+        record["log"] = nil
+      end
+      return 1, timestamp, record
+    end
