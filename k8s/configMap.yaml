@@ -221,7 +221,7 @@ data:
         "http://car-data-generator.car-app.svc.cluster.local:9273/metrics",
         "http://car-dashboard.car-app.svc.cluster.local:9273/metrics"
       ]
-      name_override = "sidecar_metrics"
+      name_override = "car_app_metrics"
       response_timeout = "5s"
       timeout = "10s"
 
