@@ -12,4 +12,3 @@ resources:
   - elasticsearch.yaml
   - kibana.yaml
   - chronograf.yaml
-  - cadvisor.yaml
