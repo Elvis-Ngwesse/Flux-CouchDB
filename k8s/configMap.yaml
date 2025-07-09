@@ -73,59 +73,59 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        30
-        Daemon       Off
-        Log_Level    info
-        Parsers_File parsers.conf
-        HTTP_Server  On
-        HTTP_Listen  0.0.0.0
-        HTTP_Port    2020
+        Flush         30
+        Daemon        Off
+        Log_Level     info
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
 
     # Tail application logs
     [INPUT]
-        Name              tail
-        Path              /logs/app/*.log
-        Tag               car_app
-        DB                /fluent-bit/db/flb_car_app.db
-        Parser            docker
-        Buffer_Chunk_Size 1M
-        Buffer_Max_Size   5M
-        Mem_Buf_Limit     10M
-        Refresh_Interval  5
-        Read_From_Head    True
+        Name               tail
+        Path               /logs/app/*.log
+        Tag                car_app
+        DB                 /fluent-bit/db/flb_car_app.db
+        Parser             docker
+        Buffer_Chunk_Size  1M
+        Buffer_Max_Size    5M
+        Mem_Buf_Limit      10M
+        Refresh_Interval   5
+        Read_From_Head     True
 
     # Tail data generator logs
     [INPUT]
-        Name              tail
-        Path              /logs/data/*.log
-        Tag               car_data
-        DB                /fluent-bit/db/flb_car_data.db
-        Parser            docker
-        Buffer_Chunk_Size 1M
-        Buffer_Max_Size   5M
-        Mem_Buf_Limit     10M
-        Refresh_Interval  5
-        Read_From_Head    True
+        Name               tail
+        Path               /logs/data/*.log
+        Tag                car_data
+        DB                 /fluent-bit/db/flb_car_data.db
+        Parser             docker
+        Buffer_Chunk_Size  1M
+        Buffer_Max_Size    5M
+        Mem_Buf_Limit      10M
+        Refresh_Interval   5
+        Read_From_Head     True
 
     # Tail Kubernetes container logs
     [INPUT]
-        Name              tail
-        Path              /var/log/containers/*.log
-        Tag               kube.var.log.containers.*
-        DB                /fluent-bit/db/flb_kube.db
-        Parser            docker
-        Buffer_Chunk_Size 1M
-        Buffer_Max_Size   5M
-        Mem_Buf_Limit     10M
-        Refresh_Interval  5
-        Read_From_Head    False
+        Name               tail
+        Path               /var/log/containers/*.log
+        Tag                kube.var.log.containers.*
+        DB                 /fluent-bit/db/flb_kube.db
+        Parser             docker
+        Buffer_Chunk_Size  1M
+        Buffer_Max_Size    5M
+        Mem_Buf_Limit      10M
+        Refresh_Interval   5
+        Read_From_Head     False
 
-    # Rename `log` → `message` to avoid ES mapping conflicts
+    # Rename `log` → `log_message` to avoid ES mapping conflicts
     [FILTER]
-        Name   lua
-        Match  *
-        script rename_log.lua
-        call   rename
+        Name    lua
+        Match   *
+        script  rename_log.lua
+        call    rename
 
     # Output to Elasticsearch for pod logs
     [OUTPUT]
@@ -136,6 +136,7 @@ data:
         Logstash_Format    On
         Logstash_Prefix    kubernetes-logs
         Replace_Dots       On
+        Buffer_Size        1M         # increase HTTP buffer to 1MiB
         Retry_Limit        False
         Suppress_Type_Name On
 
@@ -148,6 +149,7 @@ data:
         Logstash_Format    On
         Logstash_Prefix    file-logs
         Replace_Dots       On
+        Buffer_Size        1M
         Retry_Limit        False
         Suppress_Type_Name On
 
