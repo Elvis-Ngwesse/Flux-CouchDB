@@ -175,3 +175,9 @@ Go to Kibana > Stack Management > Index Go to Kibana > Stack Management > Index 
 
 
 Go to discover to see logs that r indexed
+
+
+
+
+kubectl delete service cadvisor -n car-logs
+kubectl delete daemonset cadvisor -n car-logs

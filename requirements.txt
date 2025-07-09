@@ -7,3 +7,4 @@ faker
 python-dotenv
 faker-vehicle
 requests
+psutil
