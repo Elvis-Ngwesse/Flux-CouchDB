@@ -126,6 +126,11 @@ data:
         Match   *
         script  rename_log.lua
         call    rename
+    
+    [FILTER]
+        Name    grep
+        Match   kube.var.log.containers.*
+        Exclude  log   fluent-bit|elasticsearch|kibana
 
     # Output to Elasticsearch for pod logs
     [OUTPUT]
