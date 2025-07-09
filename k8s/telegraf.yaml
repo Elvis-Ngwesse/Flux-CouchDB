@@ -14,12 +14,16 @@ spec:
       labels:
         app: telegraf
     spec:
+      terminationGracePeriodSeconds: 30
       nodeSelector:
-          node-role.kubernetes.io/worker: ""
+        node-role.kubernetes.io/worker: ""
       containers:
         - name: telegraf
           image: telegraf:1.28-alpine
           imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "/etc/telegraf/telegraf.conf"
           volumeMounts:
             - name: config
               mountPath: /etc/telegraf/telegraf.conf
@@ -31,11 +35,12 @@ spec:
             requests:
               memory: 100Mi
               cpu: 100m
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
       volumes:
         - name: config
           configMap:
             name: telegraf-config
-            items:
-              - key: telegraf.conf
-                path: telegraf.conf
-      terminationGracePeriodSeconds: 30
