@@ -72,3 +72,20 @@ spec:
           hostPath:
             path: /dev/kmsg
             type: File
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor
+  namespace: car-logs
+  labels:
+    app: cadvisor
+spec:
+  selector:
+    app: cadvisor
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
