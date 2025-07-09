@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: telegraf
+  namespace: car-logs
+  labels:
+    app: telegraf
+spec:
+  selector:
+    matchLabels:
+      app: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      nodeSelector:
+          node-role.kubernetes.io/worker: ""
+      containers:
+        - name: telegraf
+          image: telegraf:1.28-alpine
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /etc/telegraf/telegraf.conf
+              subPath: telegraf.conf
+          resources:
+            limits:
+              memory: 150Mi
+              cpu: 150m
+            requests:
+              memory: 100Mi
+              cpu: 100m
+      volumes:
+        - name: config
+          configMap:
+            name: telegraf-config
+            items:
+              - key: telegraf.conf
+                path: telegraf.conf
+      terminationGracePeriodSeconds: 30
