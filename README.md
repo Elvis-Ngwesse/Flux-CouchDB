@@ -184,3 +184,22 @@ Go to discover to see logs that r indexed
 
 kubectl delete service cadvisor -n car-logs
 kubectl delete daemonset cadvisor -n car-logs
+
+
+
+
+brew install k9s
+k9s
+Commands & Navigation Keys
+| **Action**                  | **Key / Command**                                |
+| --------------------------- | ------------------------------------------------ |
+| Move up/down                | ↑ / ↓ (arrow keys)                               |
+| Scroll page up/down         | PgUp / PgDn                                      |
+| Jump to top/bottom          | g / G                                            |
+| Select (open detailed view) | Enter                                            |
+| Go back                     | Esc or Ctrl+c                                    |
+| Filter resources            | `/` then type filter                             |
+| Clear filter                | Ctrl+u                                           |
+| Switch resource view        | `:` then resource name (e.g., `:pods`, `:nodes`) |
+| Show help                   | `?`                                              |
+| Quit                        | `:q` or Ctrl+c                                   |
