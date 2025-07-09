@@ -141,7 +141,9 @@ def get_countries():
         logger.error(f"❌ Error fetching countries: {e}")
     return sorted(list(countries))
 
-# App layout
+# Get list of countries once to build dropdown options and set initial value
+countries_list = get_countries()
+
 app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children=[
     html.H1("🚗 Used Car Market Dashboard (£)", style={'textAlign': 'center'}),
     html.Img(id="car-image", src=random.choice(CAR_IMAGES),
@@ -149,7 +151,8 @@ app.layout = html.Div(style={'fontFamily': 'Arial', 'padding': '20px'}, children
     html.Br(),
     dcc.Dropdown(
         id='country-dropdown',
-        options=[{'label': c, 'value': c} for c in get_countries()],
+        options=[{'label': c, 'value': c} for c in countries_list],
+        value="Cameroon" if "Cameroon" in countries_list else (countries_list[0] if countries_list else None),
         placeholder="Select a country",
         style={'marginBottom': '10px'}
     ),
