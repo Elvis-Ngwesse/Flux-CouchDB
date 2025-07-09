@@ -12,3 +12,4 @@ resources:
   - elasticsearch.yaml
   - kibana.yaml
   - chronograf.yaml
+  - telegraf.yaml
