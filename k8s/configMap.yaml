@@ -198,7 +198,7 @@ data:
       name_override = "app_logs"
       data_format = "grok"
       grok_patterns = ['%{COMMON_LOG_FORMAT}']
-      tag_keys = ["status", "verb", "request"]
+
 
     [[outputs.prometheus_client]]
       listen = ":9273"
