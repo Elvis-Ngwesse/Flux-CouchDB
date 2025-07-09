@@ -49,7 +49,7 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        1
+        Flush        10
         Daemon       Off
         Log_Level    info
         Parsers_File parsers.conf
