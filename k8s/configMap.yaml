@@ -223,6 +223,7 @@ data:
       ]
       name_override = "sidecar_metrics"
       response_timeout = "5s"
+      timeout = "10s"
 
     [[outputs.influxdb]]
       urls = ["http://influxdb.car-logs.svc.cluster.local:8086"]
