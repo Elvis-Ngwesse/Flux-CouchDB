@@ -11,7 +11,6 @@ import re
 import psutil
 from flask import Flask
 import threading
-import sys
 
 # Load environment variables
 load_dotenv()
@@ -36,20 +35,23 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
         logging.FileHandler(log_file),
-        logging.StreamHandler(sys.stdout)
-    ]
+        logging.StreamHandler()
+    ],
+    force=True  # Force override existing logging config
 )
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 # --- Begin Gunicorn logging integration fix ---
 try:
     gunicorn_logger = logging.getLogger('gunicorn.error')
     if gunicorn_logger.handlers:
-        logger.handlers = gunicorn_logger.handlers
+        # Append gunicorn handlers instead of replacing
+        logger.handlers = gunicorn_logger.handlers + logger.handlers
         logger.setLevel(gunicorn_logger.level)
     logger.propagate = True
 except Exception as e:
-    logger.error(f"Failed to integrate Gunicorn logging handlers: {e}")
+    # Avoid recursive logging error during setup
+    print(f"Failed to attach Gunicorn logging handlers: {e}")
 # --- End Gunicorn logging integration fix ---
 
 # Flask app for health check
