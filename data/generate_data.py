@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 import re
 import psutil
 from flask import Flask
+import threading
+import sys
 
 # Load environment variables
 load_dotenv()
@@ -34,7 +36,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
         logging.FileHandler(log_file),
-        logging.StreamHandler()
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger()
@@ -195,10 +197,6 @@ def main():
 
     ensure_influxdb_db_exists()
 
-    # Commented out Flask dev server start for Gunicorn production use
-    # from threading import Thread
-    # Thread(target=lambda: flask_app.run(host="0.0.0.0", port=8060)).start()
-
     while True:
         try:
             logger.info("🔄 New data generation cycle...")
@@ -211,5 +209,12 @@ def main():
             logger.error(f"💥 Main loop error: {e}")
             time.sleep(60)
 
+# Start the background worker when module is loaded (e.g. via Gunicorn)
+def start_background_worker():
+    t = threading.Thread(target=main, daemon=True)
+    t.start()
+
+start_background_worker()
+
 if __name__ == "__main__":
-    main()
+    flask_app.run(host="0.0.0.0", port=8060)

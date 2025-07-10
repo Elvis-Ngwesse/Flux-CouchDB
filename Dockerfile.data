@@ -9,17 +9,22 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
+# Copy dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install gunicorn
 
+# Copy source code
 COPY data/generate_data.py /app/
 
+# Permissions
 RUN chown -R appuser:appgroup /app
 
+# Switch to non-root
 USER appuser
 
+# Expose Flask + Gunicorn port
 EXPOSE 8060
 
-# Use gunicorn to run Flask app (flask_app is the Flask instance in generate_data.py)
+# Use gunicorn to run Flask app (background thread runs the data generator)
 CMD ["gunicorn", "--bind", "0.0.0.0:8060", "generate_data:flask_app", "--log-level=info", "--capture-output"]
