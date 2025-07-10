@@ -15,23 +15,35 @@ from flask import Flask
 from threading import Thread
 from functools import lru_cache
 
-# Load .env vars
+# Load environment variables
 load_dotenv()
 
-# Setup logging
+# Logging setup
 log_dir = "/app/logs"
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "app.log")
 
-for h in logging.root.handlers[:]:
-    logging.root.removeHandler(h)
+# Initial logger config
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
+    format='%(asctime)s | %(levelname)s | %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ],
     force=True
 )
 logger = logging.getLogger(__name__)
+
+# Integrate with Gunicorn logging if present
+try:
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    if gunicorn_logger.handlers:
+        logger.handlers = gunicorn_logger.handlers + logger.handlers
+        logger.setLevel(gunicorn_logger.level)
+    logger.propagate = True
+except Exception as e:
+    logger.error(f"❌ Failed to attach Gunicorn logger: {e}")
 
 # CouchDB config
 COUCHDB_USER = os.getenv("COUCHDB_USER", "admin")
@@ -82,14 +94,17 @@ def ensure_influxdb_db_exists():
         logger.error(f"❌ InfluxDB check failed: {e}")
 ensure_influxdb_db_exists()
 
-# Helper functions for metrics
+# Metric helpers
 def format_field_value(val):
-    if isinstance(val, str): return f'"{val.replace("\\", "\\\\").replace("\"", "\\\"")}"'
+    if isinstance(val, str):
+        escaped = val.replace("\\", "\\\\").replace("\"", "\\\"")
+        return f'"{escaped}"'
     if isinstance(val, bool): return "true" if val else "false"
     if isinstance(val, int): return f"{val}i"
     return str(val)
 
-def sanitize_tag_value(val): return re.sub(r"[ ,=]", "_", val)
+def sanitize_tag_value(val):
+    return re.sub(r"[ ,=]", "_", val)
 
 def push_metric(measurement, fields, tags=None, timestamp=None, retries=5, delay=1):
     line = measurement
@@ -146,10 +161,13 @@ def get_countries():
 
 countries_list = get_countries()
 
+# Flask server for health
 flask_server = Flask(__name__)
 @flask_server.route("/health")
-def health(): return "OK", 200
+def health():
+    return "OK", 200
 
+# Dash app
 app = dash.Dash(__name__, server=flask_server)
 server = app.server  # Expose Flask server for Gunicorn
 
@@ -222,15 +240,15 @@ def update_graphs(country, _):
     return bar, line, pie
 
 @app.callback(Output('car-image', 'src'), Input('image-interval', 'n_intervals'))
-def update_image(_): return random.choice(CAR_IMAGES)
+def update_image(_):
+    return random.choice(CAR_IMAGES)
 
 @app.callback(Output('price-bar', 'id'), Input('clear-cache-interval', 'n_intervals'))
 def clear_cache(_):
     clear_country_cache()
     return "price-bar"
 
-# ONLY run the development server when executed locally.
-# Remove or comment this out when deploying with Gunicorn in production.
+# Uncomment to run locally with Flask server
 # if __name__ == "__main__":
 #     logger.info("🚀 Running Dash app locally at http://0.0.0.0:8050")
 #     app.run(debug=True, host="0.0.0.0", port=8050)

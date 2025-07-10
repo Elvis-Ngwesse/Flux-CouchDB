@@ -23,4 +23,4 @@ USER appuser
 EXPOSE 8050
 
 # Default command to run your app with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8050", "main:server"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8050", "main:server", "--log-level=info", "--capture-output"]

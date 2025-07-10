@@ -39,6 +39,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
+# --- Begin Gunicorn logging integration fix ---
+try:
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    if gunicorn_logger.handlers:
+        logger.handlers = gunicorn_logger.handlers
+        logger.setLevel(gunicorn_logger.level)
+    logger.propagate = True
+except Exception as e:
+    logger.error(f"Failed to integrate Gunicorn logging handlers: {e}")
+# --- End Gunicorn logging integration fix ---
+
 # Flask app for health check
 flask_app = Flask(__name__)
 
