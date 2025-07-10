@@ -184,9 +184,9 @@ def main():
 
     ensure_influxdb_db_exists()
 
-    # Start Flask in a background thread
-    from threading import Thread
-    Thread(target=lambda: flask_app.run(host="0.0.0.0", port=8060)).start()
+    # Commented out Flask dev server start for Gunicorn production use
+    # from threading import Thread
+    # Thread(target=lambda: flask_app.run(host="0.0.0.0", port=8060)).start()
 
     while True:
         try:

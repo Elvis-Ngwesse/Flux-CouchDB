@@ -1,31 +1,25 @@
 # Dockerfile.job
 FROM python:3.11-slim
 
-# Metadata (optional)
 LABEL maintainer="you@example.com"
 ENV PYTHONUNBUFFERED=1
 
 # Create non-root user and group
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install gunicorn
 
-# Copy the actual script
 COPY data/generate_data.py /app/
 
-# Set ownership and permissions
 RUN chown -R appuser:appgroup /app
 
-# Switch to non-root user
 USER appuser
 
-# Expose Flask health endpoint
 EXPOSE 8060
 
-# Command to run
-CMD ["python", "generate_data.py"]
+# Use gunicorn to run Flask app (flask_app is the Flask instance in generate_data.py)
+CMD ["gunicorn", "--bind", "0.0.0.0:8060", "generate_data:flask_app"]
