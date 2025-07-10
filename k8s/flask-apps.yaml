@@ -31,7 +31,7 @@ spec:
             - name: telegraf-config
               mountPath: /etc/telegraf/
         - name: data-generator
-          image: dockerelvis/data-generator:b6b6fc1
+          image: dockerelvis/data-generator:7bc0308
           imagePullPolicy: Always
           env:
             - name: COUCHDB_USER
@@ -122,7 +122,7 @@ spec:
             - name: telegraf-config
               mountPath: /etc/telegraf/
         - name: dash-app
-          image: dockerelvis/car-dashboard:b6b6fc1
+          image: dockerelvis/car-dashboard:7bc0308
           imagePullPolicy: Always
           ports:
             - containerPort: 8050
