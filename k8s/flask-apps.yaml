@@ -31,7 +31,7 @@ spec:
             - name: telegraf-config
               mountPath: /etc/telegraf/
         - name: data-generator
-          image: dockerelvis/data-generator:39acd70
+          image: dockerelvis/data-generator:ac5f3b4
           imagePullPolicy: Always
           env:
             - name: COUCHDB_USER

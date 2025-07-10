@@ -29,7 +29,7 @@ INFLUXDB_DB = os.getenv("INFLUXDB_DB", "car_metrics")
 # Logging setup
 log_dir = "/app/logs"
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, "generator.log")
+log_file = os.path.join(log_dir, "app.log")
 
 logging.basicConfig(
     level=logging.INFO,
