@@ -1,7 +1,6 @@
 # 🚀  flux-CouchDB
 Learn to build, Dockerize, and deploy a Python Flask app on flux
 
-
 # 📦 Project Setup
 ✅ Create Virtual Environment
 
@@ -130,7 +129,6 @@ Name: car-logs
 Index pattern: k or F*
 Optional: Set timestamp field (e.g., @timestamp)
 Save and go to Discover to view logs.
-
 
 # 📺 K9s: Terminal UI for Kubernetes
 🧪 Install & Launch
