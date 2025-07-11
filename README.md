@@ -1,8 +1,10 @@
-# Openshift-CouchDB
-Learn to build, Dockerize, and deploy a Python Flask app on OpenShift with CI/CD, using ConfigMaps, 
-Secrets, and Routes—perfect for beginners mastering DevOps and cloud-native workflows.
+# 🚀  flux-CouchDB
+Learn to build, Dockerize, and deploy a Python Flask app on flux
 
-# ✅ Create a Virtual Environment
+
+# 📦 Project Setup
+✅ Create Virtual Environment
+
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -17,24 +19,12 @@ Service	URL	Purpose
 CouchDB	http://localhost:5984/_utils	Admin UI (user/pass: admin)
 Dash App	http://localhost:8050	Car prices dashboard
 
-🔁 Optional: Regenerate Data
-To re-run only the data loader:
 
-bash
-Copy
-Edit
-docker-compose run --rm data-generator
-
-🐳 Verify Running Containers
-Check running containers:
-
-bash
-Copy
-Edit
-docker ps
 
 
 # Multi platform
+🌍 Build for Multi-Platform
+
 docker buildx create --use
 
 COMMIT_SHA=$(git rev-parse --short HEAD) && \
@@ -55,26 +45,30 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 echo $COMMIT_SHA
 
 
-🧩 Step 1: Install 
+# 🧩 Step 1: Install 
 brew install fluxcd/tap/flux
 flux --version
 
 
+# 🧪 Start Minikube (3 Nodes)
 minikube start --nodes 3 --cpus=2 --memory=4g
 kubectl get nodes
+
+# ⚙️ Access Nodes
 minikube ssh --node=minikube
 minikube ssh --node=minikube-m02
 minikube ssh --node=minikube-m03
 
+# ⛔ Taint and Label Nodes
 kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
 kubectl label node minikube-m02 node-role.kubernetes.io/worker=""
 kubectl label node minikube-m03 node-role.kubernetes.io/worker=""
 
-
+# 🧹 Clean Minikube (if needed)
 minikube stop minikube delete --all
 minikube delete --all --purge
 
-
+# 🧠 GitOps Explained
 🛠️ What happens under the hood:
 | Option                      | Meaning                                                                                                    |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -85,7 +79,7 @@ minikube delete --all --purge
 | `--path=./k8s`              | Local path in the repo where your Kubernetes YAMLs live (e.g., `kustomization.yaml`, `deployments/`, etc.) |
 
 
-🚀 1. Deploy (Bootstrap & Add Resources)
+# 🚀 1. Deploy (Bootstrap & Add Resources)
 Go to GitHub token settings and create a token with the necessary scopes:
 
 "https://github.com/settings/tokens"
@@ -98,13 +92,10 @@ flux bootstrap github \
   --personal
 
 
-
-⬇️⬆️ 📥  git pull
+# ⬇️⬆️ 📥  git pull
 Do a git pull since flux-system folder is created in remote
 
-
-
-🔄 Force a manual reconciliation
+# 🔄 Force a manual reconciliation
 flux reconcile kustomization couchdb --with-source
 flux get all
 flux get sources git
@@ -112,94 +103,38 @@ flux get kustomizations
 kubectl get pods -n flux-system
 flux check
 kubectl -n flux-system delete pods --all
-kubectl -n flux-system get pods                       
 kubectl -n flux-system logs deployment/kustomize-controller -f
 kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o wide
 
 
-🗑️ 3. Delete Resources
-      Delete k8s/flux-system
-
-
-
+# 🗑️ Clean Up Kubernetes Resources
 kubectl delete namespace car-app
 kubectl delete namespace car-logs
 
+# 🌐 Minikube Port Forwards
+| Service       | Namespace | Access Command                                 |
+|---------------|-----------|------------------------------------------------|
+| CouchDB       | car-app   | `minikube service couchdb-nodeport -n car-app` |
+| Kibana        | car-logs  | `minikube service kibana -n car-logs`          |
+| Car Dashboard | car-app   | `minikube service car-dashboard -n car-app`    |
+| Elasticsearch | car-logs  | `minikube service elasticsearch -n car-logs`   |
+| Chronograf    | car-logs  | `minikube service chronograf -n car-logs`      |
+| cAdvisor      | car-logs  | `minikube service cadvisor -n car-logs`        |
 
-minikube service couchdb-nodeport -n car-app
-http://http://127.0.0.1:port/_utils/
-
-minikube service kibana -n car-logs
-
-minikube service car-dashboard -n car-app 
-
-
-Verify indices exist with:
-minikube service elasticsearch -n car-logs 
+# 🧪 Elasticsearch index check:
 curl http://127.0.0.1:54306/_cat/indices?v
 
-minikube service chronograf -n car-logs
-
-minikube service cadvisor -n car-logs
-
-
-
-
-
-
-
-
-
-
-
-
-✅ Fix: Create a Data View in Kibana
-You need to manually create a new Kibana Data View for your actual index pattern.
-
-🛠 Steps:
+✅ Create a Data View in Kibana
 Go to Kibana → Stack Management → Data Views
-
 Click "Create data view"
-
-Use:
-
-Data view name: car-logs
-
-Index pattern: car-*
-
-Set a timestamp field (e.g., @timestamp) if available, or choose "I don’t want to use the time filter".
-
-Save.
+Fill in:
+Name: car-logs
+Index pattern: k or F*
+Optional: Set timestamp field (e.g., @timestamp)
+Save and go to Discover to view logs.
 
 
-
-🔁 After Fixes, Refresh Fields in Kibana
-Go to Kibana > Stack Management > Index Go to Kibana > Stack Management > Index Patterns
-
-
-Go to discover to see logs that r indexed
-
-
-
-
-kubectl delete service cadvisor -n car-logs
-kubectl delete daemonset cadvisor -n car-logs
-
-
-
-
+# 📺 K9s: Terminal UI for Kubernetes
+🧪 Install & Launch
 brew install k9s
 k9s
-Commands & Navigation Keys
-| **Action**                  | **Key / Command**                                |
-| --------------------------- | ------------------------------------------------ |
-| Move up/down                | ↑ / ↓ (arrow keys)                               |
-| Scroll page up/down         | PgUp / PgDn                                      |
-| Jump to top/bottom          | g / G                                            |
-| Select (open detailed view) | Enter                                            |
-| Go back                     | Esc or Ctrl+c                                    |
-| Filter resources            | `/` then type filter                             |
-| Clear filter                | Ctrl+u                                           |
-| Switch resource view        | `:` then resource name (e.g., `:pods`, `:nodes`) |
-| Show help                   | `?`                                              |
-| Quit                        | `:q` or Ctrl+c                                   |
