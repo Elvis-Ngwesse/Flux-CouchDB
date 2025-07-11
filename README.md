@@ -20,8 +20,6 @@ CouchDB	http://localhost:5984/_utils	Admin UI (user/pass: admin)
 Dash App	http://localhost:8050	Car prices dashboard
 
 
-
-
 # Multi platform
 🌍 Build for Multi-Platform
 
